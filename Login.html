@@ -108,8 +108,6 @@ function InputField({ label, type, value, onChange, placeholder, rightEl }) {
 
 function LoginPage() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [error, setError] = useState('');
@@ -123,14 +121,17 @@ function LoginPage() {
   }, []);
   useEffect(() => { localStorage.setItem('login_email', email); }, [email]);
 
-  const handleLogin = () => {
-    if (!email || !password) { setError('이메일과 비밀번호를 입력해 주세요.'); return; }
+  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  const handleContinue = () => {
+    if (!validEmail) { setError('올바른 이메일을 입력해 주세요.'); return; }
     setError('');
     setLoading(true);
+    localStorage.setItem('login_email', email);
     setTimeout(() => {
       setLoading(false);
-      window.location.href = 'Home.html';
-    }, 1200);
+      window.location.href = 'Continue.html';
+    }, 700);
   };
 
   const ACCENT = '#a78bfa';
@@ -208,22 +209,6 @@ function LoginPage() {
           onChange={setEmail}
           placeholder="hello@example.com"
         />
-        <InputField
-          label="비밀번호"
-          type={showPw ? 'text' : 'password'}
-          value={password}
-          onChange={setPassword}
-          placeholder="••••••••"
-          rightEl={
-            <button
-              onClick={() => setShowPw(s => !s)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-                display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <EyeIcon open={showPw} color="rgba(255,255,255,0.3)" />
-            </button>
-          }
-        />
 
         {/* Error */}
         {error && (
@@ -234,18 +219,11 @@ function LoginPage() {
           }}>{error}</div>
         )}
 
-        {/* Forgot pw */}
-        <div style={{ textAlign: 'right', marginBottom: 28 }}>
-          <a href="#" style={{
-            fontFamily: "'DM Mono', monospace", fontSize: 11,
-            color: 'rgba(167,139,250,0.6)', letterSpacing: 0.5,
-            textDecoration: 'none',
-          }}>비밀번호 찾기</a>
-        </div>
+        <div style={{ marginBottom: 28 }} />
 
-        {/* Login button */}
+        {/* Continue button */}
         <button
-          onClick={handleLogin}
+          onClick={handleContinue}
           disabled={loading}
           style={{
             width: '100%', height: 54, borderRadius: 16,
@@ -268,7 +246,7 @@ function LoginPage() {
         >
           {loading ? (
             <LoadingSpinner color="#fff" />
-          ) : '로그인'}
+          ) : '이메일로 계속하기'}
         </button>
 
         {/* Divider */}
@@ -311,19 +289,6 @@ function LoginPage() {
               {label}
             </button>
           ))}
-        </div>
-
-        {/* Sign up */}
-        <div style={{
-          marginTop: 36, textAlign: 'center',
-          fontFamily: "'Noto Sans KR', sans-serif",
-          fontSize: 13, fontWeight: 300,
-          color: 'rgba(255,255,255,0.3)',
-        }}>
-          아직 계정이 없으신가요?{' '}
-          <a href="#" style={{ color: ACCENT, textDecoration: 'none', fontWeight: 500 }}>
-            가입하기
-          </a>
         </div>
       </div>
 
