@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Noto+Serif+KR:wght@600;700;900&family=DM+Mono:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: #0a0a0f; }
+  body { display: flex; justify-content: center; align-items: center; font-family: 'Noto Sans KR', sans-serif; overflow: hidden; }
+  #root { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgMjU2IDI1NicgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48ZmlsdGVyIGlkPSduJz48ZmVUdXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC45JyBudW1PY3RhdmVzPSc0JyBzdGl0Y2hUaWxlcz0nc3RpdGNoJy8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9JzEwMCUnIGhlaWdodD0nMTAwJScgZmlsdGVyPSd1cmwoI24pJyBvcGFjaXR5PScwLjA0Jy8+PC9zdmc+");
+    pointer-events: none; z-index: 9999; opacity: 0.6;
+  }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%, 100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.15); } }
+  @keyframes homeCollapse {
+    0%   { left: 0; right: 0; top: 0; bottom: 0; height: 100dvh; border-radius: 0; opacity: 1; }
+    100% { left: 12px; right: 12px; top: auto; bottom: 80px; height: 68px; border-radius: 16px; opacity: 0; }
+  }
+  ::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body style="background-color: rgb(250, 249, 245)">
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const SONGS = [
+  { title: "Dynamite", artist: "BTS", album: "BE", duration: 199,
+    colors: ["#1a0a2e","#2d1b6e","#4a2fa0"], accent: "#a78bfa", lyricsColor: "#c4b5fd",
+    coverGradient: "linear-gradient(135deg, #1a0a2e 0%, #4a2fa0 50%, #7c3aed 100%)", coverAccent: "#7c3aed" },
+  { title: "Celebrity", artist: "IU", album: "LILAC", duration: 213,
+    colors: ["#1a0e2e","#3d1a5c","#7b2d8b"], accent: "#f0abfc", lyricsColor: "#e879f9",
+    coverGradient: "linear-gradient(135deg, #1a0e2e 0%, #7b2d8b 50%, #c026d3 100%)", coverAccent: "#c026d3" },
+  { title: "After LIKE", artist: "IVE", album: "After Like", duration: 178,
+    colors: ["#0a1a0a","#0f3d1a","#1a6b2a"], accent: "#4ade80", lyricsColor: "#86efac",
+    coverGradient: "linear-gradient(135deg, #0a1a0a 0%, #166534 50%, #16a34a 100%)", coverAccent: "#16a34a" },
+  { title: "Hype Boy", artist: "NewJeans", album: "NewJeans", duration: 175,
+    colors: ["#0a0f1a","#1a2d4a","#2a4a7b"], accent: "#60a5fa", lyricsColor: "#93c5fd",
+    coverGradient: "linear-gradient(135deg, #0a0f1a 0%, #1e3a5f 50%, #2563eb 100%)", coverAccent: "#2563eb" },
+  { title: "Nxde", artist: "(G)I-DLE", album: "I love", duration: 192,
+    colors: ["#1a0a08","#3d1a0e","#7b2d1a"], accent: "#fb923c", lyricsColor: "#fdba74",
+    coverGradient: "linear-gradient(135deg, #1a0a08 0%, #7c2d12 50%, #ea580c 100%)", coverAccent: "#ea580c" },
+  { title: "ANTIFRAGILE", artist: "LE SSERAFIM", album: "ANTIFRAGILE", duration: 185,
+    colors: ["#1a1a0a","#3d3d0e","#6b6b1a"], accent: "#facc15", lyricsColor: "#fde68a",
+    coverGradient: "linear-gradient(135deg, #1a1a0a 0%, #713f12 50%, #ca8a04 100%)", coverAccent: "#ca8a04" },
+  { title: "LOVE DIVE", artist: "IVE", album: "LOVE DIVE", duration: 172,
+    colors: ["#0a0a1a","#1a1a3d","#2a2a7b"], accent: "#818cf8", lyricsColor: "#c7d2fe",
+    coverGradient: "linear-gradient(135deg, #0a0a1a 0%, #1e1b4b 50%, #4338ca 100%)", coverAccent: "#4338ca" },
+  { title: "Butter", artist: "BTS", album: "Butter", duration: 164,
+    colors: ["#1a150a","#3d320e","#7b621a"], accent: "#fbbf24", lyricsColor: "#fde68a",
+    coverGradient: "linear-gradient(135deg, #1a150a 0%, #92400e 50%, #d97706 100%)", coverAccent: "#d97706" },
+  { title: "Savage", artist: "aespa", album: "Savage", duration: 227,
+    colors: ["#0a1a1a","#0e3d3a","#1a7b75"], accent: "#2dd4bf", lyricsColor: "#5eead4",
+    coverGradient: "linear-gradient(135deg, #0a1a1a 0%, #134e4a 50%, #0d9488 100%)", coverAccent: "#0d9488" },
+  { title: "Queencard", artist: "(G)I-DLE", album: "I feel", duration: 193,
+    colors: ["#1a0a14","#3d0e28","#7b1a4a"], accent: "#f472b6", lyricsColor: "#f9a8d4",
+    coverGradient: "linear-gradient(135deg, #1a0a14 0%, #831843 50%, #db2777 100%)", coverAccent: "#db2777" },
+];
+
+const ARTISTS = [
+  { name: "BTS", color: "#7c3aed", songs: 3 },
+  { name: "IU", color: "#c026d3", songs: 5 },
+  { name: "IVE", color: "#16a34a", songs: 2 },
+  { name: "NewJeans", color: "#2563eb", songs: 4 },
+  { name: "(G)I-DLE", color: "#ea580c", songs: 3 },
+];
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
+function MiniCover({ song, size = 48, radius = 10 }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: radius, flexShrink: 0,
+      background: song.coverGradient, position: 'relative', overflow: 'hidden',
+    }}>
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{
+          width: '44%', height: '44%', borderRadius: '50%',
+          background: `radial-gradient(circle, rgba(0,0,0,0.85) 25%, ${song.coverAccent}44 100%)`,
+        }} />
+        <div style={{
+          position: 'absolute', width: '12%', height: '12%', borderRadius: '50%',
+          background: '#0a0a0f',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+function LargeCover({ song, size = 140 }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: 20, flexShrink: 0,
+      background: song.coverGradient, position: 'relative', overflow: 'hidden',
+      boxShadow: `0 16px 48px ${song.coverAccent}44`,
+    }}>
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{
+          width: '44%', height: '44%', borderRadius: '50%',
+          background: `radial-gradient(circle, rgba(0,0,0,0.9) 25%, ${song.coverAccent}55 100%)`,
+          border: `1px solid ${song.accent}33`,
+        }} />
+        <div style={{
+          position: 'absolute', width: '11%', height: '11%', borderRadius: '50%',
+          background: '#0a0a0f', border: `1.5px solid ${song.accent}55`,
+        }} />
+      </div>
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 32px, ${song.accent}07 32px, ${song.accent}07 33px)`,
+      }} />
+    </div>
+  );
+}
+
+// NAV ICONS
+const HomeIcon = ({ active, color }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? color : 'none'}>
+    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    <polyline points="9 22 9 12 15 12 15 22" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+  </svg>
+);
+const SearchIcon = ({ active, color }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+    <circle cx="11" cy="11" r="8" stroke={color} strokeWidth="1.8"/>
+    <line x1="21" y1="21" x2="16.65" y2="16.65" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+  </svg>
+);
+const LibraryIcon = ({ active, color }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+    <path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const ProfileIcon = ({ active, color }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? color : 'none'} fillOpacity={active ? 0.15 : 0}>
+    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="12" cy="7" r="4" stroke={color} strokeWidth="1.8"/>
+  </svg>
+);
+const PlayIcon = ({ color }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill={color}><path d="M8 5.14v14l11-7-11-7z"/></svg>
+);
+const PauseIcon = ({ color }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill={color}>
+    <rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>
+  </svg>
+);
+const NextSmIcon = ({ color }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+    <path d="M5 4l10 8-10 8V4zM19 4v16" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const ChevronRight = ({ color }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+    <path d="M9 18l6-6-6-6" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+// Mini player bar at bottom above nav
+const PrevSmIcon = ({ color }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+    <path d="M19 20L9 12l10-8v16zM5 4v16" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+function MiniPlayer({ song, isPlaying, onToggle, onNext, onPrev, onClick, progress, fading }) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        margin: '0 12px 8px',
+        borderRadius: 16,
+        background: `linear-gradient(135deg, ${song.colors[1]}cc, ${song.colors[2]}99)`,
+        border: `1px solid ${song.accent}22`,
+        backdropFilter: 'blur(20px)',
+        padding: '10px 12px 12px',
+        display: 'flex', alignItems: 'center', gap: 10,
+        cursor: 'pointer',
+        boxShadow: `0 4px 24px rgba(0,0,0,0.5)`,
+        transform: pressed && !fading ? 'scale(0.98)' : 'scale(1)',
+        transition: 'transform 0.12s ease',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onTouchStart={() => setPressed(true)}
+      onTouchEnd={() => setPressed(false)}
+    >
+      <MiniCover song={song} size={42} radius={10} />
+      <div style={{
+        flex: 1, overflow: 'hidden',
+        opacity: fading ? 0 : 1,
+        transition: 'opacity 0.25s ease',
+      }}>
+        <div style={{
+          fontFamily: "'Noto Serif KR', serif",
+          fontSize: 14, fontWeight: 700, color: '#fff',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>{song.title}</div>
+        <div style={{
+          fontSize: 11, fontWeight: 300, color: 'rgba(255,255,255,0.5)',
+          marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>{song.artist}</div>
+      </div>
+      <button
+        onClick={e => { e.stopPropagation(); onPrev(); }}
+        style={{
+          width: 32, height: 32, borderRadius: '50%',
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          opacity: fading ? 0 : 1,
+          transition: 'opacity 0.25s ease',
+        }}
+      >
+        <PrevSmIcon color="rgba(255,255,255,0.6)" />
+      </button>
+      <button
+        onClick={e => { e.stopPropagation(); onToggle(); }}
+        style={{
+          width: 36, height: 36, borderRadius: '50%',
+          background: 'rgba(255,255,255,0.12)',
+          border: 'none', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          opacity: fading ? 0 : 1,
+          transition: 'opacity 0.25s ease',
+        }}
+      >
+        {isPlaying ? <PauseIcon color="#fff" /> : <PlayIcon color="#fff" />}
+      </button>
+      <button
+        onClick={e => { e.stopPropagation(); onNext(); }}
+        style={{
+          width: 32, height: 32, borderRadius: '50%',
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          opacity: fading ? 0 : 1,
+          transition: 'opacity 0.25s ease',
+        }}
+      >
+        <NextSmIcon color="rgba(255,255,255,0.6)" />
+      </button>
+
+      {/* progress bar — bottom edge */}
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0,
+        height: 2, background: 'rgba(255,255,255,0.08)',
+      }}>
+        <div style={{
+          height: '100%',
+          width: `${(progress || 0) * 100}%`,
+          background: song.accent,
+          transition: 'width 0.3s linear',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+function SectionHeader({ title, sub }) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+      padding: '0 20px', marginBottom: 14,
+    }}>
+      <div style={{
+        fontFamily: "'Noto Serif KR', serif",
+        fontSize: 17, fontWeight: 700, color: '#fff', letterSpacing: -0.3,
+      }}>{title}</div>
+      {sub && (
+        <button style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 2,
+          fontFamily: "'DM Mono', monospace",
+          fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: 1.5,
+        }}>
+          전체보기 <ChevronRight color="rgba(255,255,255,0.3)" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// Featured hero card — horizontal scroll
+function FeaturedCard({ song, onPlay }) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <div
+      onClick={onPlay}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onTouchStart={() => setPressed(true)}
+      onTouchEnd={() => setPressed(false)}
+      style={{
+        width: 240, flexShrink: 0,
+        borderRadius: 20,
+        background: `linear-gradient(145deg, ${song.colors[1]}, ${song.colors[2]})`,
+        border: `1px solid ${song.accent}18`,
+        padding: 18,
+        display: 'flex', flexDirection: 'column', gap: 16,
+        cursor: 'pointer',
+        boxShadow: `0 8px 32px ${song.coverAccent}33`,
+        transform: pressed ? 'scale(0.96)' : 'scale(1)',
+        transition: 'transform 0.15s ease',
+      }}
+    >
+      <LargeCover song={song} size={204} />
+      <div>
+        <div style={{
+          fontFamily: "'Noto Serif KR', serif",
+          fontSize: 16, fontWeight: 700, color: '#fff',
+          letterSpacing: -0.3, lineHeight: 1.3,
+        }}>{song.title}</div>
+        <div style={{
+          fontFamily: "'Noto Sans KR', sans-serif",
+          fontSize: 12, fontWeight: 300, color: 'rgba(255,255,255,0.5)',
+          marginTop: 3,
+        }}>{song.artist} · {song.album}</div>
+      </div>
+    </div>
+  );
+}
+
+// Horizontal row card (recent/recommended)
+function SongRow({ song, onPlay, onSwipeAdd, index }) {
+  const [pressed, setPressed] = useState(false);
+  const [dx, setDx] = useState(0);
+  const sr = useRef(null);
+  const swiped = useRef(false);
+  const onTS = (e) => { const t = e.touches[0]; sr.current = { x: t.clientX, y: t.clientY, locked: null }; setPressed(true); };
+  const onTM = (e) => {
+    if (!sr.current) return;
+    const t = e.touches[0]; const ddx = t.clientX - sr.current.x; const ddy = t.clientY - sr.current.y;
+    if (!sr.current.locked && (Math.abs(ddx) > 8 || Math.abs(ddy) > 8)) sr.current.locked = Math.abs(ddx) > Math.abs(ddy) ? 'h' : 'v';
+    if (sr.current.locked === 'h' && ddx > 0) setDx(Math.min(ddx, 140));
+  };
+  const onTE = () => {
+    setPressed(false);
+    const wasH = sr.current?.locked === 'h'; const final = dx; sr.current = null;
+    if (wasH && final > 70 && onSwipeAdd) { swiped.current = true; onSwipeAdd(); setDx(0); setTimeout(() => { swiped.current = false; }, 400); }
+    else setDx(0);
+  };
+  const handleClick = () => { if (!swiped.current) onPlay(); };
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden' }}>
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', alignItems: 'center', paddingLeft: 28,
+        background: 'linear-gradient(90deg, rgba(80,160,120,0.55) 0%, rgba(80,160,120,0.12) 70%, transparent 100%)',
+        opacity: dx > 0 ? Math.min(1, dx / 70) : 0,
+        color: '#fff', fontSize: 13, fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 500,
+        pointerEvents: 'none',
+      }}>＋ 재생목록에 추가</div>
+    <div
+      onClick={handleClick}
+      onTouchStart={onTS}
+      onTouchMove={onTM}
+      onTouchEnd={onTE}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '10px 20px',
+        background: pressed ? 'rgba(255,255,255,0.04)' : 'transparent',
+        transform: `translateX(${dx}px)`,
+        transition: dx === 0 ? 'transform 0.28s cubic-bezier(0.4,0,0.2,1), background 0.15s ease' : 'background 0.15s ease',
+        cursor: 'pointer', touchAction: 'pan-y', position: 'relative',
+      }}
+    >
+      <div style={{
+        width: 20, flexShrink: 0, textAlign: 'center',
+        fontFamily: "'DM Mono', monospace", fontSize: 11,
+        color: 'rgba(255,255,255,0.2)',
+      }}>{index + 1}</div>
+      <MiniCover song={song} size={48} radius={12} />
+      <div style={{ flex: 1, overflow: 'hidden' }}>
+        <div style={{
+          fontFamily: "'Noto Sans KR', sans-serif",
+          fontSize: 14, fontWeight: 500, color: '#fff',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>{song.title}</div>
+        <div style={{
+          fontSize: 12, fontWeight: 300, color: 'rgba(255,255,255,0.35)',
+          marginTop: 2,
+        }}>{song.artist}</div>
+      </div>
+      <span style={{
+        fontFamily: "'DM Mono', monospace", fontSize: 11,
+        color: 'rgba(255,255,255,0.25)', flexShrink: 0,
+      }}>{formatTime(song.duration)}</span>
+    </div>
+    </div>
+  );
+}
+
+// Compact card for horizontal scroll (smaller)
+function CompactCard({ song, onPlay }) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <div
+      onClick={onPlay}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onTouchStart={() => setPressed(true)}
+      onTouchEnd={() => setPressed(false)}
+      style={{
+        width: 130, flexShrink: 0, cursor: 'pointer',
+        transform: pressed ? 'scale(0.95)' : 'scale(1)',
+        transition: 'transform 0.12s ease',
+      }}
+    >
+      <MiniCover song={song} size={130} radius={16} />
+      <div style={{
+        marginTop: 10,
+        fontFamily: "'Noto Sans KR', sans-serif",
+        fontSize: 13, fontWeight: 500, color: '#fff',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>{song.title}</div>
+      <div style={{
+        fontSize: 11, fontWeight: 300, color: 'rgba(255,255,255,0.35)',
+        marginTop: 2,
+      }}>{song.artist}</div>
+    </div>
+  );
+}
+
+// Artist pill card
+function ArtistCard({ artist }) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <div
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onTouchStart={() => setPressed(true)}
+      onTouchEnd={() => setPressed(false)}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: 8, flexShrink: 0, cursor: 'pointer',
+        transform: pressed ? 'scale(0.93)' : 'scale(1)',
+        transition: 'transform 0.12s ease',
+      }}
+    >
+      <div style={{
+        width: 70, height: 70, borderRadius: '50%',
+        background: `radial-gradient(circle at 40% 35%, ${artist.color}88, ${artist.color}22)`,
+        border: `1.5px solid ${artist.color}44`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: `0 4px 16px ${artist.color}33`,
+        fontFamily: "'Noto Serif KR', serif",
+        fontSize: 22, fontWeight: 900,
+        color: '#fff',
+      }}>
+        {artist.name.charAt(0)}
+      </div>
+      <div style={{
+        fontFamily: "'Noto Sans KR', sans-serif",
+        fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.6)',
+        textAlign: 'center',
+        maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>{artist.name}</div>
+    </div>
+  );
+}
+
+function HScrollRow({ children, gap = 16, padH = 20 }) {
+  return (
+    <div style={{
+      overflowX: 'scroll', scrollbarWidth: 'none',
+      padding: `0 ${padH}px`,
+    }}>
+      <div style={{ display: 'flex', gap, width: 'max-content', paddingRight: 4 }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+const MOCK_NOTIFS = [
+  { id: 1, text: "BTS의 새 앨범이 출시됐어요", time: "방금 전", read: false },
+  { id: 2, text: "IU Celebrity가 인기차트 1위에 올랐어요", time: "1시간 전", read: false },
+  { id: 3, text: "팔로우한 아티스트가 라이브를 시작했어요", time: "3시간 전", read: true },
+];
+
+function ProfilePanel({ visible, onClose, onNotifsChange }) {
+  const [notifs, setNotifs] = useState(MOCK_NOTIFS);
+  const swipeRef = useRef(null);
+  const ACCENT = '#a78bfa';
+  const hasUnread = notifs.some(n => !n.read);
+
+  const markRead = (id) => {
+    const next = notifs.map(n => n.id === id ? { ...n, read: true } : n);
+    setNotifs(next);
+    if (onNotifsChange) onNotifsChange(next);
+  };
+
+
+
+  const handleTouchStart = (e) => { swipeRef.current = e.touches[0].clientX; };
+  const handleTouchEnd = (e) => {
+    if (swipeRef.current === null) return;
+    const dx = e.changedTouches[0].clientX - swipeRef.current;
+    swipeRef.current = null;
+    if (dx > 60) onClose();
+  };
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 30,
+      pointerEvents: visible ? 'auto' : 'none',
+    }}>
+      {/* dim overlay */}
+      <div onClick={onClose} style={{
+        position: 'absolute', inset: 0,
+        background: 'rgba(0,0,0,0.5)',
+        opacity: visible ? 1 : 0,
+        transition: 'opacity 0.4s cubic-bezier(0.4,0,0.2,1)',
+        pointerEvents: visible ? 'auto' : 'none',
+      }} />
+
+      {/* panel */}
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          position: 'absolute',
+          top: 0, right: 0, bottom: 0,
+          width: '92%',
+          background: 'linear-gradient(160deg, #17141f 0%, #0f0d16 100%)',
+          borderLeft: '1px solid rgba(255,255,255,0.07)',
+          borderBottomLeftRadius: 0,
+          boxShadow: '-8px 0 40px rgba(0,0,0,0.6)',
+          display: 'flex', flexDirection: 'column',
+          transform: visible ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 0.44s cubic-bezier(0.4,0,0.2,1)',
+          overflow: 'hidden',
+        }}
+      >
+
+
+        <div style={{ flex: 1, overflowY: 'scroll', scrollbarWidth: 'none', padding: '8px 0 20px' }}>
+
+          {/* ── PROFILE ── */}
+          <div style={{ padding: '12px 20px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+              {/* Avatar */}
+              <div style={{
+                width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
+                background: 'rgba(167,139,250,0.1)',
+                border: '1.5px solid rgba(167,139,250,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 16px rgba(124,58,237,0.2)',
+              }}>
+                <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                  <circle cx="18" cy="14" r="6" stroke="rgba(167,139,250,0.8)" strokeWidth="1.6"/>
+                  <path d="M4 34c0-7.73 6.27-14 14-14s14 6.27 14 14" stroke="rgba(167,139,250,0.8)" strokeWidth="1.6" strokeLinecap="round"/>
+                </svg>
+              </div>
+              {/* Info */}
+              <div style={{ flex: 1, paddingTop: 2 }}>
+                <div style={{
+                  fontFamily: "'Noto Sans KR', sans-serif",
+                  fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: -0.2,
+                }}>뮤직 팬</div>
+                <div style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: 11, color: 'rgba(255,255,255,0.3)',
+                  letterSpacing: 0.5, marginTop: 2,
+                }}>@musicfan_kr</div>
+              </div>
+            </div>
+            <button style={{
+              marginTop: 14,
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: "'Noto Sans KR', sans-serif",
+              fontSize: 12, fontWeight: 400,
+              color: ACCENT, letterSpacing: 0.3,
+              padding: 0, display: 'flex', alignItems: 'center', gap: 4,
+            }}>
+              프로필 보기
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path d="M9 18l6-6-6-6" stroke={ACCENT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* divider */}
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 20px' }} />
+
+          {/* ── SETTINGS ── */}
+          <button style={{
+            width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 14,
+            padding: '16px 20px',
+          }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 11,
+              background: 'rgba(255,255,255,0.05)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="3" stroke="rgba(255,255,255,0.5)" strokeWidth="1.8"/>
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="rgba(255,255,255,0.5)" strokeWidth="1.8"/>
+              </svg>
+            </div>
+            <span style={{
+              fontFamily: "'Noto Sans KR', sans-serif",
+              fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.7)',
+            }}>설정</span>
+          </button>
+
+          {/* divider */}
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 20px' }} />
+
+          {/* ── NOTIFICATIONS ── */}
+          <div style={{
+            margin: '12px 16px 0',
+            borderRadius: 16,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            overflow: 'hidden',
+          }}>
+            {/* header */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 14px 10px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" stroke="rgba(255,255,255,0.4)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+
+                </svg>
+                <span style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: 10, letterSpacing: 2,
+                  color: 'rgba(255,255,255,0.3)',
+                }}>알림</span>
+              </div>
+              <button style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: "'DM Mono', monospace",
+                fontSize: 9, letterSpacing: 1,
+                color: ACCENT + '99',
+              }}>전체 보기</button>
+            </div>
+
+            {/* list */}
+            {notifs.length === 0 ? (
+              <div style={{
+                padding: '16px 14px 18px', textAlign: 'center',
+                fontFamily: "'Noto Sans KR', sans-serif",
+                fontSize: 12, fontWeight: 300,
+                color: 'rgba(255,255,255,0.2)',
+              }}>새 알림이 없어요</div>
+            ) : (
+              <div>
+                {notifs.slice(0, 3).map((n, i) => (
+                  <div key={n.id} style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 10,
+                    padding: '9px 14px',
+                    borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                    background: n.read ? 'transparent' : 'rgba(167,139,250,0.04)',
+                  }}>
+                    <div style={{
+                      width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                      background: n.read ? 'transparent' : ACCENT,
+                      marginTop: 5,
+                    }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        fontFamily: "'Noto Sans KR', sans-serif",
+                        fontSize: 12, fontWeight: n.read ? 300 : 400,
+                        color: n.read ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.75)',
+                        lineHeight: 1.5,
+                      }}>{n.text}</div>
+                      <div style={{
+                        fontFamily: "'DM Mono', monospace",
+                        fontSize: 9, color: 'rgba(255,255,255,0.2)',
+                        marginTop: 2, letterSpacing: 0.5,
+                      }}>{n.time}</div>
+                    </div>
+                    {/* mark read button */}
+                    {!n.read && (
+                      <button
+                        onClick={() => markRead(n.id)}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          flexShrink: 0, padding: 2,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <polyline points="20 6 9 17 4 12" stroke="rgba(167,139,250,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const NAV_ITEMS = [
+  { id: 'home', label: '홈', Icon: HomeIcon, href: null },
+  { id: 'search', label: '검색', Icon: SearchIcon, href: 'Search.html' },
+  { id: 'library', label: '보관함', Icon: LibraryIcon, href: null },
+  { id: 'profile', label: '프로필', Icon: ProfileIcon, href: null },
+];
+
+function HomePage() {
+  const [mounted, setMounted] = useState(false);
+  const [activeNav, setActiveNav] = useState('home');
+  const [currentSongIdx, setCurrentSongIdx] = useState(() => {
+    const saved = localStorage.getItem('player_songIdx');
+    return saved !== null ? parseInt(saved) : 0;
+  });
+  const [queue, setQueueState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('player_queue');
+      if (saved) {
+        const arr = JSON.parse(saved);
+        if (Array.isArray(arr) && arr.length > 0) return arr;
+      }
+    } catch (e) {}
+    return SONGS.map((_, i) => i);
+  });
+
+  const playSong = (idx) => {
+    if (idx === currentSongIdx) {
+      setCurrentTime(0);
+      setIsPlaying(true);
+      return;
+    }
+    const filtered = queue.filter(q => q !== idx);
+    const curPos = filtered.indexOf(currentSongIdx);
+    const insertAt = curPos === -1 ? filtered.length : curPos + 1;
+    const next = [...filtered.slice(0, insertAt), idx, ...filtered.slice(insertAt)];
+    setQueueState(next);
+    setCurrentSongIdx(idx);
+    setCurrentTime(0);
+    setIsPlaying(true);
+  };
+
+  const [toast, setToast] = useState({ visible: false, message: '' });
+  const toastTimerRef = useRef(null);
+  const showToast = (message) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ visible: true, message });
+    toastTimerRef.current = setTimeout(() => setToast(t => ({ ...t, visible: false })), 2400);
+  };
+  const addToQueue = (idx) => {
+    setQueueState([...queue, idx]);
+    showToast(`재생목록에 추가됨 · ${SONGS[idx].title} — ${SONGS[idx].artist}`);
+  };
+  const [isPlaying, setIsPlaying] = useState(() => {
+    const saved = localStorage.getItem('player_isPlaying');
+    return saved === null ? true : saved === '1';
+  });
+  const [currentTime, setCurrentTime] = useState(() => {
+    const saved = localStorage.getItem('player_currentTime');
+    return saved !== null ? parseFloat(saved) : 0;
+  });
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [hasUnread, setHasUnread] = useState(MOCK_NOTIFS.some(n => !n.read));
+  const [transition, setTransition] = useState('idle'); // 'idle' | 'expanding' | 'collapsing'
+  const scrollRef = useRef(null);
+
+  const song = SONGS[currentSongIdx];
+  const ACCENT = '#a78bfa';
+  const progress = song.duration > 0 ? currentTime / song.duration : 0;
+
+  // Persist state for sync between Home & Player
+  useEffect(() => { localStorage.setItem('player_songIdx', currentSongIdx); }, [currentSongIdx]);
+  useEffect(() => { localStorage.setItem('player_isPlaying', isPlaying ? '1' : '0'); }, [isPlaying]);
+  useEffect(() => { localStorage.setItem('player_currentTime', currentTime); }, [currentTime]);
+  useEffect(() => { localStorage.setItem('player_queue', JSON.stringify(queue)); }, [queue]);
+
+  // Sync from other tabs/pages — also reload state when returning from Player
+  useEffect(() => {
+    const sync = () => {
+      const idx = localStorage.getItem('player_songIdx');
+      const playing = localStorage.getItem('player_isPlaying');
+      const t = localStorage.getItem('player_currentTime');
+      const q = localStorage.getItem('player_queue');
+      if (idx !== null) setCurrentSongIdx(parseInt(idx));
+      if (playing !== null) setIsPlaying(playing === '1');
+      if (t !== null) setCurrentTime(parseFloat(t));
+      if (q) { try { const arr = JSON.parse(q); if (Array.isArray(arr) && arr.length) setQueueState(arr); } catch(e) {} }
+    };
+    window.addEventListener('storage', sync);
+    window.addEventListener('focus', sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener('focus', sync);
+    };
+  }, []);
+
+  // Mount animation — handle reverse-from-player transition
+  useEffect(() => {
+    if (sessionStorage.getItem('returning_from_player') === '1') {
+      sessionStorage.removeItem('returning_from_player');
+      setTransition('collapsing');
+      setMounted(true);
+      // Run collapse animation, then settle
+      requestAnimationFrame(() => {
+        setTimeout(() => setTransition('idle'), 380);
+      });
+    } else {
+      setTimeout(() => setMounted(true), 80);
+    }
+  }, []);
+
+  // Tick playback time
+  useEffect(() => {
+    if (!isPlaying) return;
+    const id = setInterval(() => {
+      setCurrentTime(t => {
+        if (t >= song.duration) return 0;
+        return t + 0.5;
+      });
+    }, 500);
+    return () => clearInterval(id);
+  }, [isPlaying, song.duration]);
+
+  // Persist position handled above via player_songIdx
+
+  const handleNext = () => {
+    if (!queue.length) return;
+    const pos = queue.indexOf(currentSongIdx);
+    const nextPos = pos === -1 ? 0 : (pos + 1) % queue.length;
+    setCurrentSongIdx(queue[nextPos]);
+    setCurrentTime(0);
+  };
+  const handlePrev = () => {
+    if (!queue.length) return;
+    const pos = queue.indexOf(currentSongIdx);
+    const prevPos = pos === -1 ? 0 : (pos - 1 + queue.length) % queue.length;
+    setCurrentSongIdx(queue[prevPos]);
+    setCurrentTime(0);
+  };
+  const [playerOverlay, setPlayerOverlay] = useState('hidden'); // 'hidden' | 'opening' | 'open' | 'closing'
+  const [overlayDragY, setOverlayDragY] = useState(0);
+  const overlayDragRef = useRef(null);
+
+  const goToPlayer = () => {
+    if (playerOverlay !== 'hidden') return;
+    setPlayerOverlay('opening');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setPlayerOverlay('open'));
+    });
+  };
+  const closePlayer = () => {
+    if (playerOverlay === 'hidden' || playerOverlay === 'closing') return;
+    setPlayerOverlay('closing');
+    setOverlayDragY(0);
+    setTimeout(() => setPlayerOverlay('hidden'), 380);
+  };
+
+  // Listen to messages from the Player iframe
+  useEffect(() => {
+    const onMsg = (e) => {
+      if (!e.data || typeof e.data !== 'object') return;
+      if (e.data.type === 'player_close') closePlayer();
+      else if (e.data.type === 'player_drag') setOverlayDragY(Math.max(0, e.data.dy || 0));
+      else if (e.data.type === 'player_drag_end') {
+        if ((e.data.dy || 0) > 120) closePlayer();
+        else setOverlayDragY(0);
+      } else if (e.data.type === 'player_queue_changed') {
+        if (Array.isArray(e.data.queue) && e.data.queue.length) setQueueState(e.data.queue);
+        if (typeof e.data.songIdx === 'number') setCurrentSongIdx(e.data.songIdx);
+      }
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, [playerOverlay]);
+
+  const getGreeting = () => {
+    const h = new Date().getHours();
+    const map = {
+      dawn:    ["새벽의 음악은 조용히", "잠 못 드는 밤엔 음악과", "새벽 감성 충전 중", "고요한 새벽, 귀를 열어요"],
+      morning: ["좋은 아침이에요", "오늘도 음악과 함께", "아침을 깨우는 플레이리스트", "상쾌한 하루의 시작"],
+      noon:    ["점심 시간, 잠깐 쉬어요", "낮의 리듬을 찾아서", "오늘 점심 BGM은?", "한숨 돌리는 시간"],
+      afternoon: ["오후의 여유를 즐겨요", "집중력이 필요한 시간", "오후의 감성 한 곡", "슬럼프엔 음악이지"],
+      evening: ["오늘 하루 수고했어요", "퇴근길 귀를 채워요", "저녁 바람과 함께", "하루를 마무리하며"],
+      night:   ["밤의 플레이리스트", "오늘 밤의 선택", "고독한 밤엔 음악이지", "밤이 깊어질수록"],
+    };
+    let list;
+    if (h >= 4 && h < 7) list = map.dawn;
+    else if (h >= 7 && h < 12) list = map.morning;
+    else if (h >= 12 && h < 14) list = map.noon;
+    else if (h >= 14 && h < 18) list = map.afternoon;
+    else if (h >= 18 && h < 22) list = map.evening;
+    else list = map.night;
+    return list[Math.floor(Math.random() * list.length)];
+  };
+  const [greeting] = useState(getGreeting);
+
+  return (
+    <div style={{
+      width: '100%', maxWidth: 430,
+      height: '100dvh', maxHeight: 900,
+      position: 'relative', overflow: 'hidden',
+      background: '#0a0a0f',
+      display: 'flex', flexDirection: 'column',
+      opacity: mounted ? 1 : 0,
+      transform: mounted ? 'translateY(0)' : 'translateY(20px)',
+      transition: 'opacity 0.5s ease, transform 0.5s ease',
+    }}>
+
+      {/* ambient glow from current song */}
+      <div style={{
+        position: 'absolute', top: -60, left: '30%',
+        width: 280, height: 280, borderRadius: '50%',
+        background: `radial-gradient(circle, ${song.coverAccent}1a, transparent 70%)`,
+        filter: 'blur(60px)', pointerEvents: 'none',
+        transition: 'background 1.2s ease',
+      }} />
+
+
+
+      {/* SCROLLABLE CONTENT */}
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'scroll', scrollbarWidth: 'none' }}>
+
+        {/* HEADER */}
+        <div style={{
+          padding: '4px 20px 20px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <div>
+            <div style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: 10, letterSpacing: 2.5,
+              color: 'rgba(255,255,255,0.25)', marginBottom: 4,
+            }}>{greeting.toUpperCase()}</div>
+            <div style={{
+              fontFamily: "'Noto Serif KR', serif",
+              fontSize: 24, fontWeight: 900, color: '#fff',
+              letterSpacing: -0.5,
+            }}>오늘의 음악</div>
+          </div>
+          {/* 아이콘 버튼 묶음 */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {/* Profile with badge */}
+            <button
+              onClick={() => setPanelOpen(true)}
+              style={{
+                width: 40, height: 40, borderRadius: 12,
+                background: 'transparent', border: 'none',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                position: 'relative',
+              }}
+            >
+              {/* 원+사람 아이콘 */}
+              <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+                <circle cx="13" cy="13" r="12" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5"/>
+                <circle cx="13" cy="11" r="3.5" stroke="rgba(255,255,255,0.45)" strokeWidth="1.4"/>
+                <path d="M7 21.5c0-3.31 2.69-6 6-6s6 2.69 6 6" stroke="rgba(255,255,255,0.45)" strokeWidth="1.4" strokeLinecap="round"/>
+              </svg>
+              {/* 알림 배지 — unread 있을 때만 */}
+              {hasUnread && (
+                <div style={{
+                  position: 'absolute', top: 5, right: 5,
+                  width: 7, height: 7, borderRadius: '50%',
+                  background: '#a78bfa',
+                  border: '1.5px solid #0a0a0f',
+                }} />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* FEATURED — horizontal scroll */}
+        <SectionHeader title="추천 트랙" sub />
+        <HScrollRow gap={14} padH={20}>
+          {SONGS.slice(0, 4).map((s, i) => (
+            <FeaturedCard key={i} song={s} onPlay={() => playSong(i)} />
+          ))}
+        </HScrollRow>
+
+        {/* CHIP FILTERS */}
+        <div style={{ margin: '28px 0 0' }}>
+          <HScrollRow gap={8} padH={20}>
+            {['전체', 'K-POP', '팝', '인디', '로파이', 'OST'].map((tag, i) => (
+              <div
+                key={tag}
+                style={{
+                  padding: '7px 16px', borderRadius: 20,
+                  background: i === 0
+                    ? 'linear-gradient(135deg, #4a2fa0, #7c3aed)'
+                    : 'rgba(255,255,255,0.06)',
+                  border: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                  fontFamily: "'Noto Sans KR', sans-serif",
+                  fontSize: 12, fontWeight: i === 0 ? 500 : 300,
+                  color: i === 0 ? '#fff' : 'rgba(255,255,255,0.45)',
+                  cursor: 'pointer', flexShrink: 0,
+                  boxShadow: i === 0 ? '0 4px 16px rgba(124,58,237,0.35)' : 'none',
+                }}
+              >{tag}</div>
+            ))}
+          </HScrollRow>
+        </div>
+
+        {/* RECENTLY PLAYED */}
+        <div style={{ marginTop: 28 }}>
+          <SectionHeader title="최근 재생" sub />
+          <div>
+            {SONGS.slice(0, 5).map((s, i) => (
+              <SongRow key={i} song={s} index={i}
+                onPlay={() => playSong(i)}
+                onSwipeAdd={() => addToQueue(i)} />
+            ))}
+          </div>
+        </div>
+
+        {/* ARTISTS */}
+        <div style={{ marginTop: 28 }}>
+          <SectionHeader title="좋아하는 아티스트" sub />
+          <HScrollRow gap={20} padH={20}>
+            {ARTISTS.map((a, i) => <ArtistCard key={i} artist={a} />)}
+          </HScrollRow>
+        </div>
+
+        {/* RECOMMENDED */}
+        <div style={{ margin: '28px 0 12px' }}>
+          <SectionHeader title="당신을 위한 추천" sub />
+          <HScrollRow gap={14} padH={20}>
+            {[...SONGS].reverse().map((s, i) => (
+              <CompactCard key={i} song={s}
+                onPlay={() => playSong(SONGS.length - 1 - i)} />
+            ))}
+          </HScrollRow>
+        </div>
+
+        {/* bottom spacer for mini player + nav */}
+        <div style={{ height: 180 }} />
+      </div>
+
+      {/* PROFILE PANEL */}
+      <ProfilePanel visible={panelOpen} onClose={() => setPanelOpen(false)} onNotifsChange={ns => setHasUnread(ns.some(n => !n.read))} />
+
+      {/* PLAYER OVERLAY — slides up over Home */}
+      {playerOverlay !== 'hidden' && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 100,
+          pointerEvents: 'auto',
+          overflow: 'hidden',
+        }}>
+          {/* dim backdrop behind iframe — subtle */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'rgba(0,0,0,0.3)',
+            opacity: playerOverlay === 'open' ? 1 : 0,
+            transition: 'opacity 0.38s cubic-bezier(0.4, 0, 0.2, 1)',
+            pointerEvents: 'none',
+          }} />
+          <iframe
+            src="Player.html?overlay=1"
+            title="Player"
+            style={{
+              position: 'absolute', left: 0, right: 0, top: 0,
+              width: '100%', height: '100%',
+              border: 'none',
+              background: 'transparent',
+              transform: playerOverlay === 'open'
+                ? `translateY(${overlayDragY}px)`
+                : 'translateY(100%)',
+              transition: overlayDragRef.current?.active
+                ? 'none'
+                : 'transform 0.38s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 -8px 40px rgba(0,0,0,0.4)',
+            }}
+          />
+        </div>
+      )}
+
+      {/* MINI PLAYER + BOTTOM NAV — fixed at bottom */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        background: 'linear-gradient(to top, #0a0a0f 60%, transparent)',
+        paddingTop: 16,
+        zIndex: transition !== 'idle' ? 50 : 10,
+        isolation: 'isolate',
+      }}>
+        {/* Toast — slides up from behind mini player */}
+        <div style={{
+          position: 'absolute', left: 12, right: 12, bottom: '100%',
+          marginBottom: -12,
+          transform: toast.visible ? 'translateY(0)' : 'translateY(calc(100% + 24px))',
+          opacity: toast.visible ? 1 : 0,
+          transition: 'transform 0.44s cubic-bezier(0.4,0,0.2,1), opacity 0.28s ease',
+          pointerEvents: 'none',
+          zIndex: -1,
+        }}>
+          <div style={{
+            background: 'rgba(28,28,36,0.96)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 14,
+            padding: '12px 16px 22px',
+            color: '#fff',
+            fontSize: 13,
+            fontFamily: "'Noto Sans KR', sans-serif",
+            fontWeight: 500,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>{toast.message}</div>
+        </div>
+        <MiniPlayer
+          song={song}
+          isPlaying={isPlaying}
+          onToggle={() => setIsPlaying(p => !p)}
+          onNext={handleNext}
+          onPrev={handlePrev}
+          onClick={goToPlayer}
+          progress={progress}
+          fading={false}
+        />
+
+        {/* NAV BAR */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+          padding: '8px 0 24px',
+          borderTop: '1px solid rgba(255,255,255,0.04)',
+        }}>
+          {NAV_ITEMS.map(({ id, label, Icon, href }) => {
+            const active = activeNav === id;
+            const commonStyle = {
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: '4px 16px',
+              transition: 'opacity 0.15s ease',
+              textDecoration: 'none',
+            };
+            const inner = (
+              <>
+                <Icon active={active} color={active ? ACCENT : 'rgba(255,255,255,0.3)'} />
+                <span style={{
+                  fontFamily: "'Noto Sans KR', sans-serif",
+                  fontSize: 10, fontWeight: active ? 500 : 300,
+                  color: active ? ACCENT : 'rgba(255,255,255,0.3)',
+                  letterSpacing: 0.3,
+                  transition: 'color 0.2s ease',
+                }}>{label}</span>
+              </>
+            );
+            if (href) {
+              return (
+                <a key={id} href={href} style={commonStyle}>
+                  {inner}
+                </a>
+              );
+            }
+            return (
+              <button
+                key={id}
+                onClick={() => setActiveNav(id)}
+                style={commonStyle}
+              >
+                {inner}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<HomePage />);
+</script>
+</body>
+</html>
