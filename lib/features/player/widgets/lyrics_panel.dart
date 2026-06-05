@@ -66,7 +66,11 @@ class _LyricsPanelState extends State<LyricsPanel> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     final song = widget.song;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final albumCoverH = (screenWidth - 56.0).clamp(100.0, 300.0);
+    final expandedH = albumCoverH + 52.0;
     return GestureDetector(
+      onTap: _expanded ? null : _expand,
       onVerticalDragEnd: (d) {
         if (d.primaryVelocity != null) {
           if (d.primaryVelocity! < -200 && !_expanded) _expand();
@@ -76,7 +80,7 @@ class _LyricsPanelState extends State<LyricsPanel> with SingleTickerProviderStat
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 440),
         curve: const Cubic(0.4, 0, 0.2, 1),
-        height: _expanded ? 220 : 44,
+        height: _expanded ? expandedH : 44,
         margin: const EdgeInsets.symmetric(horizontal: 28),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
@@ -117,6 +121,7 @@ class _CollapsedRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onExpand,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14),

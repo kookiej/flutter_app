@@ -32,6 +32,7 @@ class _PlayerPageState extends State<PlayerPage> {
         final song = player.currentSong;
         return Stack(
           children: [
+            const Positioned.fill(child: ColoredBox(color: AppColors.bgPrimary)),
 
             // animated background
             AnimatedContainer(
@@ -84,17 +85,23 @@ class _PlayerPageState extends State<PlayerPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // album cover
-                  PlayerAlbumCover(song: song, isPlaying: player.isPlaying),
-                  const SizedBox(height: 20),
-                  // lyrics panel
-                  LyricsPanel(
-                    song: song,
-                    currentTime: player.currentTime,
-                    fanchantMode: _fanchantMode,
-                    onSeek: player.seek,
+                  // album cover + lyrics overlay
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      PlayerAlbumCover(song: song, isPlaying: player.isPlaying),
+                      Positioned(
+                        left: 0, right: 0, bottom: -52,
+                        child: LyricsPanel(
+                          song: song,
+                          currentTime: player.currentTime,
+                          fanchantMode: _fanchantMode,
+                          onSeek: player.seek,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 68),
                   // song info + like
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
@@ -247,12 +254,28 @@ class _QueueSheetState extends State<_QueueSheetWrapper> with SingleTickerProvid
                             const Spacer(),
                             GestureDetector(
                               onTap: () => player.toggleShuffle(),
-                              child: AppIcons.shuffle(color: player.shuffle ? AppColors.accent : AppColors.textTertiary),
+                              child: Opacity(
+                                opacity: player.shuffle ? 1.0 : 0.25,
+                                child: AppIcons.shuffle(color: Colors.white),
+                              ),
                             ),
                             const SizedBox(width: 16),
                             GestureDetector(
                               onTap: () => player.toggleRepeat(),
-                              child: AppIcons.repeat(color: player.repeat > 0 ? AppColors.accent : AppColors.textTertiary),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 28, height: 28,
+                                    child: Opacity(
+                                      opacity: player.repeat > 0 ? 1.0 : 0.25,
+                                      child: Center(child: AppIcons.repeat(color: Colors.white)),
+                                    ),
+                                  ),
+                                  if (player.repeat == 2)
+                                    const Text('1', style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -262,6 +285,7 @@ class _QueueSheetState extends State<_QueueSheetWrapper> with SingleTickerProvid
                       child: Consumer<PlayerProvider>(
                         builder: (context, player, _) => ReorderableListView.builder(
                           padding: EdgeInsets.zero,
+                          buildDefaultDragHandles: false,
                           itemCount: player.queue.length,
                           onReorder: player.reorderQueue,
                           itemBuilder: (_, i) {
@@ -270,6 +294,7 @@ class _QueueSheetState extends State<_QueueSheetWrapper> with SingleTickerProvid
                             final isCurrent = i == player.queuePos;
                             return _QueueRowItem(
                               key: ValueKey('q-$i-$songIdx'),
+                              index: i,
                               song: song,
                               isCurrent: isCurrent,
                               onTap: () => player.play(songIdx),
@@ -291,13 +316,14 @@ class _QueueSheetState extends State<_QueueSheetWrapper> with SingleTickerProvid
 }
 
 class _QueueRowItem extends StatefulWidget {
+  final int index;
   final dynamic song;
   final bool isCurrent;
   final VoidCallback onTap;
   final VoidCallback? onDelete;
 
   const _QueueRowItem({
-    super.key, required this.song, required this.isCurrent,
+    super.key, required this.index, required this.song, required this.isCurrent,
     required this.onTap, this.onDelete,
   });
 
@@ -373,7 +399,13 @@ class _QueueRowItemState extends State<_QueueRowItem> {
                       ],
                     ),
                   ),
-                  AppIcons.drag(),
+                  ReorderableDragStartListener(
+                    index: widget.index,
+                    child: Padding(
+                      padding: const EdgeInsets.all(13),
+                      child: AppIcons.drag(),
+                    ),
+                  ),
                 ],
               ),
             ),

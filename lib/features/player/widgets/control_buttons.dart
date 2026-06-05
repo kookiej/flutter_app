@@ -20,7 +20,10 @@ class ControlButtons extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _IconBtn(
-                child: AppIcons.shuffle(color: player.shuffle ? song.accent : AppColors.textTertiary),
+                child: Opacity(
+                  opacity: player.shuffle ? 1.0 : 0.5,
+                  child: AppIcons.shuffle(color: player.shuffle ? song.accent : Colors.white),
+                ),
                 onTap: () => player.toggleShuffle(),
               ),
               _IconBtn(child: AppIcons.prev(color: Colors.white), onTap: () => player.prev()),
@@ -134,17 +137,12 @@ class _RepeatBtnState extends State<_RepeatBtn> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              AppIcons.repeat(color: active ? widget.song.accent : AppColors.textTertiary),
+              Opacity(
+                opacity: active ? 1.0 : 0.5,
+                child: AppIcons.repeat(color: active ? widget.song.accent : Colors.white),
+              ),
               if (widget.player.repeat == 2)
-                Positioned(
-                  right: 8, bottom: 8,
-                  child: Container(
-                    width: 14, height: 14,
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: widget.song.accent),
-                    alignment: Alignment.center,
-                    child: const Text('1', style: TextStyle(fontSize: 8, color: Colors.black, fontWeight: FontWeight.bold)),
-                  ),
-                ),
+                Text('1', style: TextStyle(fontSize: 9, color: widget.song.accent, fontWeight: FontWeight.bold)),
             ],
           ),
         ),

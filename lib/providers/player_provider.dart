@@ -40,6 +40,28 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void playSong(Song song) {
+    final idx = kSongs.indexOf(song);
+    if (idx >= 0) playSongInPlace(idx);
+  }
+
+  void addSongToQueue(Song song) {
+    final idx = kSongs.indexOf(song);
+    if (idx >= 0) addToQueue(idx);
+  }
+
+  void playNext(int songIdx) {
+    _queue.insert(_queuePos + 1, songIdx);
+    if (!_isPlaying) {
+      _queuePos++;
+      _currentTime = 0;
+      _isPlaying = true;
+      _startTimer();
+    }
+    _persist();
+    notifyListeners();
+  }
+
   void play(int songIdx) {
     _queuePos = _queue.indexOf(songIdx);
     if (_queuePos < 0) {
@@ -81,8 +103,9 @@ class PlayerProvider extends ChangeNotifier {
     } else if (_repeat == 1) {
       _queuePos = 0;
     } else {
-      _isPlaying = false;
-      _timer?.cancel();
+      _queuePos = 0;
+      _isPlaying = true;
+      _startTimer();
     }
     _currentTime = 0;
     _persist();

@@ -40,8 +40,10 @@ class _PlayerAlbumCoverState extends State<PlayerAlbumCover> with SingleTickerPr
     final song = widget.song;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 28),
-      child: AspectRatio(
-        aspectRatio: 1,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 300, maxHeight: 300),
+        child: AspectRatio(
+          aspectRatio: 1,
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
@@ -110,7 +112,8 @@ class _PlayerAlbumCoverState extends State<PlayerAlbumCover> with SingleTickerPr
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
 

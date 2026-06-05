@@ -148,7 +148,6 @@ class _PanelContent extends StatelessWidget {
             const SizedBox(height: 12),
             // notifications card
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: -4),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),

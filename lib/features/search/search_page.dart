@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../providers/notification_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/search_provider.dart';
 import '../home/home_page.dart';
 import '../home/widgets/song_row.dart';
+import '../shared/icons/app_icons.dart';
 import '../player/player_page.dart';
 import '../shared/widgets/bottom_nav_bar.dart';
 import '../shared/widgets/mini_player_bar.dart';
@@ -62,14 +64,36 @@ class _SearchPageState extends State<SearchPage> {
                               child: Row(
                                 children: [
                                   Expanded(child: Text('검색', style: AppTextStyles.pageTitle)),
-                                  Container(
-                                    width: 40, height: 40,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Colors.white.withOpacity(0.06),
+                                  Consumer<NotificationProvider>(
+                                    builder: (_, notifs, __) => GestureDetector(
+                                      onTap: () => setState(() => _profileVisible = true),
+                                      child: Stack(
+                                        children: [
+                                          Container(
+                                            width: 40, height: 40,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: Colors.white.withOpacity(0.06),
+                                              border: Border.all(color: AppColors.borderSubtle),
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: AppIcons.profile(color: AppColors.textSecondary),
+                                          ),
+                                          if (notifs.hasUnread)
+                                            Positioned(
+                                              right: 0, top: 0,
+                                              child: Container(
+                                                width: 7, height: 7,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: AppColors.accent,
+                                                  border: Border.all(color: AppColors.bgPrimary, width: 1.5),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
                                     ),
-                                    alignment: Alignment.center,
-                                    child: const Icon(Icons.person_outline, color: AppColors.textSecondary, size: 22),
                                   ),
                                 ],
                               ),
@@ -179,14 +203,12 @@ class _SearchPageState extends State<SearchPage> {
                                     song: song,
                                     index: i,
                                     onTap: () {
-                                      final idx = context.read<PlayerProvider>().queue.indexOf(
-                                        context.read<PlayerProvider>().songIdx);
-                                      context.read<PlayerProvider>().play(
-                                        context.read<PlayerProvider>().queue.indexWhere((q) => q == i));
-                                      setState(() => _playerVisible = true);
+                                      FocusScope.of(context).unfocus();
+                                      context.read<PlayerProvider>().playSong(song);
+                                      setState(() => _toastSong = song);
                                     },
                                     onSwipeAdd: () {
-                                      context.read<PlayerProvider>().addToQueue(i);
+                                      context.read<PlayerProvider>().addSongToQueue(song);
                                       setState(() => _toastSong = song);
                                     },
                                     showIndex: false,

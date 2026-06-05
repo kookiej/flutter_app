@@ -92,7 +92,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 Expanded(
                   child: _navIdx == 0 ? _HomeContent(
                     onProfileTap: () => setState(() => _profileVisible = true),
-                    onPlayerOpen: () => setState(() => _playerVisible = true),
                     onToast: _showToast,
                   ) : const SizedBox(),
                 ),
@@ -131,12 +130,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
 class _HomeContent extends StatelessWidget {
   final VoidCallback onProfileTap;
-  final VoidCallback onPlayerOpen;
   final void Function(Song) onToast;
 
   const _HomeContent({
     required this.onProfileTap,
-    required this.onPlayerOpen,
     required this.onToast,
   });
 
@@ -144,7 +141,12 @@ class _HomeContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomScrollView(
       slivers: [
-        SliverToBoxAdapter(child: HomeHeader(onProfileTap: onProfileTap)),
+        SliverToBoxAdapter(
+          child: SafeArea(
+            bottom: false,
+            child: HomeHeader(onProfileTap: onProfileTap),
+          ),
+        ),
         SliverToBoxAdapter(child: SectionHeader(title: '추천 트랙', action: '전체보기 >')),
         SliverToBoxAdapter(
           child: SizedBox(
@@ -157,8 +159,8 @@ class _HomeContent extends StatelessWidget {
                 song: kSongs[i],
                 index: i,
                 onTap: () {
-                  context.read<PlayerProvider>().play(i);
-                  onPlayerOpen();
+                  context.read<PlayerProvider>().playSongInPlace(i);
+                  onToast(kSongs[i]);
                 },
               ),
             ),
@@ -174,8 +176,8 @@ class _HomeContent extends StatelessWidget {
               song: kSongs[i],
               index: i,
               onTap: () {
-                context.read<PlayerProvider>().play(i);
-                onPlayerOpen();
+                context.read<PlayerProvider>().playSongInPlace(i);
+                onToast(kSongs[i]);
               },
               onSwipeAdd: () {
                 context.read<PlayerProvider>().addToQueue(i);
@@ -212,8 +214,8 @@ class _HomeContent extends StatelessWidget {
                 return CompactCard(
                   song: kSongs[idx],
                   onTap: () {
-                    context.read<PlayerProvider>().play(idx);
-                    onPlayerOpen();
+                    context.read<PlayerProvider>().playSongInPlace(idx);
+                    onToast(kSongs[idx]);
                   },
                 );
               },

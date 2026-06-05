@@ -1,13 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../core/theme/app_spacing.dart';
 import '../shared/icons/app_icons.dart';
 import '../shared/widgets/noise_overlay.dart';
 import '../home/home_page.dart';
+import '../../services/kakao_auth_service.dart';
+import '../../services/naver_auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -18,9 +18,9 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
   final _emailCtrl = TextEditingController();
-  final _pwCtrl = TextEditingController();
-  bool _showPw = false;
   bool _loading = false;
+  bool _kakaoLoading = false;
+  bool _naverLoading = false;
   String _error = '';
   late final AnimationController _mountCtrl;
   late final Animation<double> _opacity;
@@ -43,9 +43,39 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     if (saved.isNotEmpty) setState(() => _emailCtrl.text = saved);
   }
 
+  Future<void> _handleKakaoLogin() async {
+    setState(() { _error = ''; _kakaoLoading = true; });
+    try {
+      await KakaoAuthService().login();
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
+    } catch (_) {
+      if (mounted) setState(() => _error = '카카오 로그인에 실패했습니다.');
+    } finally {
+      if (mounted) setState(() => _kakaoLoading = false);
+    }
+  }
+
+  Future<void> _handleNaverLogin() async {
+    setState(() { _error = ''; _naverLoading = true; });
+    try {
+      await NaverAuthService().login();
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
+    } catch (_) {
+      if (mounted) setState(() => _error = '네이버 로그인에 실패했습니다.');
+    } finally {
+      if (mounted) setState(() => _naverLoading = false);
+    }
+  }
+
   Future<void> _handleLogin() async {
-    if (_emailCtrl.text.isEmpty || _pwCtrl.text.isEmpty) {
-      setState(() => _error = '이메일과 비밀번호를 입력해 주세요.');
+    if (_emailCtrl.text.isEmpty) {
+      setState(() => _error = '올바른 이메일을 입력해 주세요.');
       return;
     }
     setState(() { _error = ''; _loading = true; });
@@ -62,7 +92,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   @override
   void dispose() {
     _emailCtrl.dispose();
-    _pwCtrl.dispose();
     _mountCtrl.dispose();
     super.dispose();
   }
@@ -128,20 +157,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               placeholder: 'hello@example.com',
                               keyboardType: TextInputType.emailAddress,
                             ),
-                            _InputField(
-                              label: '비밀번호', controller: _pwCtrl,
-                              placeholder: '••••••••',
-                              obscure: !_showPw,
-                              rightEl: GestureDetector(
-                                onTap: () => setState(() => _showPw = !_showPw),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(4),
-                                  child: _showPw
-                                      ? AppIcons.eyeOpen(color: AppColors.textTertiary)
-                                      : AppIcons.eyeClosed(color: AppColors.textTertiary),
-                                ),
-                              ),
-                            ),
                             if (_error.isNotEmpty)
                               Container(
                                 margin: const EdgeInsets.only(bottom: 16),
@@ -153,11 +168,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                 ),
                                 child: Text(_error, style: AppTextStyles.bodyLight.copyWith(color: AppColors.error, fontSize: 13)),
                               ),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: Text('비밀번호 찾기',
-                                style: AppTextStyles.monoTime.copyWith(color: AppColors.accent.withOpacity(0.6))),
-                            ),
                             const SizedBox(height: 28),
                             // login button
                             _LoginButton(loading: _loading, onTap: _handleLogin),
@@ -176,6 +186,17 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               label: '카카오로 계속하기', bg: AppColors.kakaoYellow,
                               textColor: AppColors.kakaoText,
                               icon: AppIcons.kakao(),
+                              loading: _kakaoLoading,
+                              onTap: _handleKakaoLogin,
+                            ),
+                            const SizedBox(height: 12),
+                            _SocialButton(
+                              label: '네이버로 계속하기',
+                              bg: Colors.white,
+                              textColor: AppColors.kakaoText,
+                              icon: AppIcons.naver(),
+                              loading: _naverLoading,
+                              onTap: _handleNaverLogin,
                             ),
                             const SizedBox(height: 12),
                             _SocialButton(
@@ -184,18 +205,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               textColor: Colors.white,
                               icon: AppIcons.apple(),
                               border: Border.all(color: Colors.white.withOpacity(0.1)),
-                            ),
-                            const SizedBox(height: 36),
-                            Center(
-                              child: RichText(
-                                text: TextSpan(
-                                  style: AppTextStyles.bodyLight.copyWith(fontSize: 13, color: AppColors.textTertiary),
-                                  children: [
-                                    const TextSpan(text: '아직 계정이 없으신가요? '),
-                                    TextSpan(text: '가입하기', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w500)),
-                                  ],
-                                ),
-                              ),
                             ),
                           ],
                         ),
@@ -272,13 +281,11 @@ class _InputField extends StatefulWidget {
   final String label;
   final TextEditingController controller;
   final String placeholder;
-  final bool obscure;
-  final Widget? rightEl;
   final TextInputType? keyboardType;
 
   const _InputField({
     required this.label, required this.controller, required this.placeholder,
-    this.obscure = false, this.rightEl, this.keyboardType,
+    this.keyboardType,
   });
 
   @override
@@ -324,20 +331,17 @@ class _InputFieldState extends State<_InputField> {
                           onFocusChange: (v) => setState(() => _focused = v),
                           child: TextField(
                             controller: widget.controller,
-                            obscureText: widget.obscure,
                             keyboardType: widget.keyboardType,
                             style: AppTextStyles.bodyLight.copyWith(fontSize: 15, color: Colors.white),
                             decoration: InputDecoration(
                               hintText: widget.placeholder,
                               hintStyle: AppTextStyles.bodyLight.copyWith(fontSize: 15),
                               border: InputBorder.none,
-                              contentPadding: EdgeInsets.fromLTRB(18, 15, widget.rightEl != null ? 8 : 18, 15),
+                              contentPadding: const EdgeInsets.fromLTRB(18, 15, 18, 15),
                             ),
                           ),
                         ),
                       ),
-                      if (widget.rightEl != null)
-                        Padding(padding: const EdgeInsets.only(right: 14), child: widget.rightEl!),
                     ],
                   ),
                   // glow bottom line
@@ -404,7 +408,7 @@ class _LoginButtonState extends State<_LoginButton> {
           alignment: Alignment.center,
           child: widget.loading
               ? const _Spinner()
-              : Text('로그인', style: AppTextStyles.body.copyWith(fontSize: 15, letterSpacing: 0.5)),
+              : Text('이메일로 계속하기', style: AppTextStyles.body.copyWith(fontSize: 15, letterSpacing: 0.5)),
         ),
       ),
     );
@@ -451,10 +455,12 @@ class _SocialButton extends StatefulWidget {
   final Color textColor;
   final Widget icon;
   final Border? border;
+  final bool loading;
+  final VoidCallback? onTap;
 
   const _SocialButton({
     required this.label, required this.bg, required this.textColor,
-    required this.icon, this.border,
+    required this.icon, this.border, this.loading = false, this.onTap,
   });
 
   @override
@@ -467,8 +473,8 @@ class _SocialButtonState extends State<_SocialButton> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
+      onTapDown: (_) { if (!widget.loading) setState(() => _pressed = true); },
+      onTapUp: (_) { setState(() => _pressed = false); if (!widget.loading) widget.onTap?.call(); },
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedScale(
         scale: _pressed ? 0.97 : 1.0,
@@ -477,17 +483,19 @@ class _SocialButtonState extends State<_SocialButton> {
           height: 50,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            color: widget.bg,
+            color: widget.loading ? widget.bg.withOpacity(0.6) : widget.bg,
             border: widget.border,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              widget.icon,
-              const SizedBox(width: 10),
-              Text(widget.label, style: AppTextStyles.body.copyWith(color: widget.textColor, fontSize: 14)),
-            ],
-          ),
+          child: widget.loading
+              ? const Center(child: _Spinner())
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    widget.icon,
+                    const SizedBox(width: 10),
+                    Text(widget.label, style: AppTextStyles.body.copyWith(color: widget.textColor, fontSize: 14)),
+                  ],
+                ),
         ),
       ),
     );
