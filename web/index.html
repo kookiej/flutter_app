@@ -31,6 +31,14 @@
 
   <title>dot_music</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Spotify Web Playback SDK: 로드 완료를 Promise로 노출 (Dart에서 await) -->
+  <script>
+    window.spotifySDKReadyPromise = new Promise(function (resolve) {
+      window.onSpotifyWebPlaybackSDKReady = resolve;
+    });
+  </script>
+  <script src="https://sdk.scdn.co/spotify-player.js" async></script>
 </head>
 <body>
   <!--

@@ -43,6 +43,18 @@ class MiniCover extends StatelessWidget {
               ),
             ),
           ),
+          // 실제 앨범 커버 — 로드 실패 시 아래 그라디언트 아트가 드러남
+          if (song.albumImageUrl != null)
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(radius),
+                child: Image.network(
+                  song.albumImageUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                ),
+              ),
+            ),
         ],
       ),
     );

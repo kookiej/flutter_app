@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../providers/notification_provider.dart';
+import '../../../providers/user_provider.dart';
 import '../icons/app_icons.dart';
 
 class ProfilePanel extends StatefulWidget {
@@ -107,30 +108,43 @@ class _PanelContent extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           children: [
             // profile
-            Row(
-              children: [
-                Container(
-                  width: 52, height: 52,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(colors: [Color(0xFF4A2FA0), Color(0xFF7C3AED)]),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text('M', style: AppTextStyles.sectionTitle),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('뮤직 팬', style: AppTextStyles.body),
-                      Text('@musicfan_kr', style: AppTextStyles.caption),
-                      const SizedBox(height: 4),
-                      Text('프로필 보기 >', style: AppTextStyles.monoLabel.copyWith(color: AppColors.accent.withOpacity(0.7))),
-                    ],
-                  ),
-                ),
-              ],
+            Consumer<UserProvider>(
+              builder: (context, userProv, _) {
+                final user = userProv.user;
+                final name = user?.displayName ?? '뮤직 팬';
+                final handle = user != null ? '@${user.spotifyUserId}' : '@musicfan_kr';
+                final initial = name.isNotEmpty ? name.characters.first.toUpperCase() : 'M';
+                return Row(
+                  children: [
+                    Container(
+                      width: 52, height: 52,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(colors: [Color(0xFF4A2FA0), Color(0xFF7C3AED)]),
+                        image: user?.pfpUrl != null
+                            ? DecorationImage(image: NetworkImage(user!.pfpUrl!), fit: BoxFit.cover)
+                            : null,
+                      ),
+                      alignment: Alignment.center,
+                      child: user?.pfpUrl == null
+                          ? Text(initial, style: AppTextStyles.sectionTitle)
+                          : null,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(name, style: AppTextStyles.body),
+                          Text(handle, style: AppTextStyles.caption),
+                          const SizedBox(height: 4),
+                          Text('프로필 보기 >', style: AppTextStyles.monoLabel.copyWith(color: AppColors.accent.withOpacity(0.7))),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 20),
             Divider(color: AppColors.borderSubtle, height: 1),
@@ -193,15 +207,11 @@ class _PanelContent extends StatelessWidget {
                           ),
                           if (!n.read)
                             GestureDetector(
+                              behavior: HitTestBehavior.opaque, // 배경 원 없이도 26x26 터치 영역 유지
                               onTap: () => context.read<NotificationProvider>().markRead(n.id),
-                              child: Container(
+                              child: SizedBox(
                                 width: 26, height: 26,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppColors.accent.withOpacity(0.1),
-                                ),
-                                alignment: Alignment.center,
-                                child: AppIcons.check(color: AppColors.accent),
+                                child: Center(child: AppIcons.check(color: AppColors.accent)),
                               ),
                             ),
                         ],

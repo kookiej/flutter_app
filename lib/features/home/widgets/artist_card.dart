@@ -28,10 +28,16 @@ class ArtistCard extends StatelessWidget {
                 boxShadow: [BoxShadow(color: artist.color.withOpacity(0.2), blurRadius: 16, offset: const Offset(0, 4))],
               ),
               alignment: Alignment.center,
-              child: Text(
-                artist.name[0],
-                style: AppTextStyles.sectionTitle.copyWith(fontSize: 22, fontWeight: FontWeight.w900),
-              ),
+              child: artist.imageUrl != null
+                  // 실제 아티스트 사진 — 로드 실패 시 이니셜로 폴백
+                  ? ClipOval(
+                      child: Image.network(
+                        artist.imageUrl!,
+                        width: 70, height: 70, fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Center(child: _initial()),
+                      ),
+                    )
+                  : _initial(),
             ),
             const SizedBox(height: 8),
             SizedBox(
@@ -47,4 +53,9 @@ class ArtistCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _initial() => Text(
+        artist.name[0],
+        style: AppTextStyles.sectionTitle.copyWith(fontSize: 22, fontWeight: FontWeight.w900),
+      );
 }

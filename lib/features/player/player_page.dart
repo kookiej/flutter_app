@@ -1,10 +1,16 @@
+import 'dart:math' show pi;
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../data/mock/songs.dart';
+import '../../data/models/song.dart';
+import '../../providers/catalog_provider.dart';
+import '../../providers/like_provider.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/sync_provider.dart';
 import '../shared/icons/app_icons.dart';
+import '../shared/widgets/mini_cover.dart';
 import '../shared/widgets/noise_overlay.dart';
 import 'widgets/album_cover.dart';
 import 'widgets/control_buttons.dart';
@@ -21,15 +27,18 @@ class PlayerPage extends StatefulWidget {
 }
 
 class _PlayerPageState extends State<PlayerPage> {
-  bool _liked = false;
-  bool _fanchantMode = false;
   bool _queueVisible = false;
 
   @override
   Widget build(BuildContext context) {
     return Consumer<PlayerProvider>(
       builder: (context, player, _) {
-        final song = player.currentSong;
+        final song = context.watch<CatalogProvider>().songs[player.songIdx];
+        final sync = context.watch<SyncProvider>();
+        final hasFanchant = sync.hasFanchant;
+        final showLyrics = sync.showLyrics;
+        // 모드는 SyncProvider가 보유(곡 전환 시 리셋, 닫기/열기엔 유지). 응원법 없으면 OFF.
+        final fanchantMode = sync.fanchantOn;
         return Stack(
           children: [
             const Positioned.fill(child: ColoredBox(color: AppColors.bgPrimary)),
@@ -86,22 +95,29 @@ class _PlayerPageState extends State<PlayerPage> {
                   ),
                   const SizedBox(height: 20),
                   // album cover + lyrics overlay
+                  // 가사 패널을 Stack 경계 안에 두어야 탭이 인식된다 (경계 밖은 히트테스트 안 됨)
                   Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      PlayerAlbumCover(song: song, isPlaying: player.isPlaying),
-                      Positioned(
-                        left: 0, right: 0, bottom: -52,
-                        child: LyricsPanel(
-                          song: song,
-                          currentTime: player.currentTime,
-                          fanchantMode: _fanchantMode,
-                          onSeek: player.seek,
-                        ),
+                      Padding(
+                        padding: EdgeInsets.only(bottom: showLyrics ? 52 : 0),
+                        child: PlayerAlbumCover(song: song, isPlaying: player.isPlaying),
                       ),
+                      // 현재곡의 가사/응원법이 DB에 있을 때만 가사 영역 표시
+                      if (showLyrics)
+                        Positioned(
+                          left: 0, right: 0, bottom: 0,
+                          child: LyricsPanel(
+                            song: song,
+                            entries: sync.data!.entries,
+                            currentTime: player.currentTime,
+                            fanchantMode: fanchantMode,
+                            onSeek: player.seek,
+                          ),
+                        ),
                     ],
                   ),
-                  const SizedBox(height: 68),
+                  const SizedBox(height: 16),
                   // song info + like
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
@@ -118,14 +134,17 @@ class _PlayerPageState extends State<PlayerPage> {
                             ],
                           ),
                         ),
-                        GestureDetector(
-                          onTap: () => setState(() => _liked = !_liked),
-                          child: Container(
-                            width: 44, height: 44,
-                            alignment: Alignment.center,
-                            child: AppIcons.heart(filled: _liked, color: _liked ? song.accent : Colors.white.withOpacity(0.5)),
-                          ),
-                        ),
+                        Builder(builder: (context) {
+                          final liked = context.watch<LikeProvider>().isLiked(song);
+                          return GestureDetector(
+                            onTap: () => context.read<LikeProvider>().toggle(song),
+                            child: Container(
+                              width: 44, height: 44,
+                              alignment: Alignment.center,
+                              child: AppIcons.heart(filled: liked, color: liked ? song.accent : Colors.white.withOpacity(0.5)),
+                            ),
+                          );
+                        }),
                       ],
                     ),
                   ),
@@ -146,14 +165,11 @@ class _PlayerPageState extends State<PlayerPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        GestureDetector(
-                          onTap: () => setState(() => _fanchantMode = !_fanchantMode),
-                          child: Container(
-                            width: 40, height: 40,
-                            alignment: Alignment.center,
-                            child: AppIcons.fanchant(
-                              color: _fanchantMode ? song.accent : AppColors.textTertiary),
-                          ),
+                        _FanchantButton(
+                          active: fanchantMode,
+                          enabled: hasFanchant,
+                          accent: song.accent,
+                          onTap: sync.toggleFanchant,
                         ),
                         GestureDetector(
                           onTap: () => setState(() => _queueVisible = true),
@@ -212,13 +228,18 @@ class _QueueSheetState extends State<_QueueSheetWrapper> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    // 시트 상단 = 앨범 커버 세로 중앙 (프로토타입 coverMid)
+    final coverH = (media.size.width - 56).clamp(0.0, 300.0);
+    final coverTop = media.padding.top + 16 + 40 + 20; // SafeArea + 상단바(패딩16+높이40) + SizedBox(20)
+    final sheetHeight = media.size.height - (coverTop + coverH / 2);
     return Positioned.fill(
       child: Stack(
         children: [
           GestureDetector(onTap: _hide, child: Container(color: Colors.transparent)),
           Positioned(
             left: 0, right: 0, bottom: 0,
-            height: MediaQuery.of(context).size.height * 0.6,
+            height: sheetHeight,
             child: SlideTransition(
               position: _slide,
               child: Container(
@@ -290,7 +311,7 @@ class _QueueSheetState extends State<_QueueSheetWrapper> with SingleTickerProvid
                           onReorder: player.reorderQueue,
                           itemBuilder: (_, i) {
                             final songIdx = player.queue[i];
-                            final song = kSongs[songIdx];
+                            final song = context.read<CatalogProvider>().songs[songIdx];
                             final isCurrent = i == player.queuePos;
                             return _QueueRowItem(
                               key: ValueKey('q-$i-$songIdx'),
@@ -315,9 +336,111 @@ class _QueueSheetState extends State<_QueueSheetWrapper> with SingleTickerProvid
   }
 }
 
+// 응원봉 버튼 — 활성 시 -30° 회전 + 펄스 글로우 (프로토타입 fanchantGlow)
+class _FanchantButton extends StatefulWidget {
+  final bool active;
+  final bool enabled;
+  final Color accent;
+  final VoidCallback onTap;
+
+  const _FanchantButton({
+    required this.active,
+    required this.enabled,
+    required this.accent,
+    required this.onTap,
+  });
+
+  @override
+  State<_FanchantButton> createState() => _FanchantButtonState();
+}
+
+class _FanchantButtonState extends State<_FanchantButton> with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600));
+    if (widget.active) _ctrl.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(_FanchantButton old) {
+    super.didUpdateWidget(old);
+    if (widget.active != old.active) {
+      if (widget.active) {
+        _ctrl.repeat(reverse: true);
+      } else {
+        _ctrl.stop();
+        _ctrl.value = 0;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 활성 글로우 — 아이콘·글로우 모두 흰색
+    final Widget activeIcon = AnimatedBuilder(
+      key: const ValueKey('on'),
+      animation: _ctrl,
+      builder: (context, _) {
+        final sigma = 3.0 + 4.0 * _ctrl.value; // 3 → 7px 펄스
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+              child: AppIcons.fanchant(color: Colors.white),
+            ),
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: sigma * 0.5, sigmaY: sigma * 0.5),
+              child: AppIcons.fanchant(color: Colors.white),
+            ),
+            AppIcons.fanchant(color: Colors.white),
+          ],
+        );
+      },
+    );
+    final Widget inactiveIcon = KeyedSubtree(
+      key: const ValueKey('off'),
+      child: AppIcons.fanchant(color: AppColors.textTertiary),
+    );
+
+    return GestureDetector(
+      onTap: widget.enabled ? widget.onTap : null,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 44, height: 44,
+        child: Center(
+          child: Transform.rotate(
+            angle: -30 * pi / 180,
+            // enabled 전환을 부드럽게 (비활성 곡 → 활성 곡 스킵 시 dim→bright)
+            child: AnimatedOpacity(
+              opacity: widget.enabled ? 1.0 : 0.35,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              // active↔inactive 아이콘 교체를 페이드로
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: widget.active ? activeIcon : inactiveIcon,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _QueueRowItem extends StatefulWidget {
   final int index;
-  final dynamic song;
+  final Song song;
   final bool isCurrent;
   final VoidCallback onTap;
   final VoidCallback? onDelete;
@@ -333,20 +456,29 @@ class _QueueRowItem extends StatefulWidget {
 
 class _QueueRowItemState extends State<_QueueRowItem> {
   double _swipeOffset = 0;
+  bool _dragging = false;
 
   @override
   Widget build(BuildContext context) {
+    final screenW = MediaQuery.of(context).size.width;
     return GestureDetector(
+      onHorizontalDragStart: (_) {
+        if (widget.onDelete != null) setState(() => _dragging = true);
+      },
       onHorizontalDragUpdate: (d) {
-        if (widget.onDelete != null && d.delta.dx < 0) {
+        if (widget.onDelete != null && (_swipeOffset < 0 || d.delta.dx < 0)) {
           setState(() => _swipeOffset = (_swipeOffset + d.delta.dx).clamp(-100.0, 0.0));
         }
       },
       onHorizontalDragEnd: (_) {
         if (_swipeOffset < -60 && widget.onDelete != null) {
-          widget.onDelete!();
+          // 화면 밖으로 슬라이드 후 제거 (프로토타입 220ms)
+          setState(() { _dragging = false; _swipeOffset = -screenW; });
+          Future.delayed(const Duration(milliseconds: 220), () {
+            if (mounted) widget.onDelete!();
+          });
         } else {
-          setState(() => _swipeOffset = 0);
+          setState(() { _dragging = false; _swipeOffset = 0; });
         }
       },
       onTap: widget.onTap,
@@ -366,24 +498,17 @@ class _QueueRowItemState extends State<_QueueRowItem> {
                 child: Text('삭제', style: AppTextStyles.monoLabel.copyWith(color: Colors.white)),
               ),
             ),
-          Transform.translate(
-            offset: Offset(_swipeOffset, 0),
+          AnimatedContainer(
+            duration: _dragging ? Duration.zero : const Duration(milliseconds: 220),
+            curve: const Cubic(0.4, 0, 0.2, 1),
+            transform: Matrix4.translationValues(_swipeOffset, 0, 0),
             child: Container(
               height: 64,
               color: widget.isCurrent ? const Color(0xFF1C1C24) : Colors.transparent,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Row(
                 children: [
-                  Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      gradient: LinearGradient(
-                        colors: widget.song.coverGradient,
-                        begin: Alignment.topLeft, end: Alignment.bottomRight,
-                      ),
-                    ),
-                  ),
+                  MiniCover(song: widget.song, size: 44, radius: 10),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(

@@ -479,9 +479,29 @@ const RepeatIcon = ({ color, one }) => (
   </svg>
 );
 const FanchantIcon = ({ color, active }) => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-    <path d="M12 1a3 3 0 013 3v7a3 3 0 01-6 0V4a3 3 0 013-3z" stroke={color} strokeWidth="1.8" fill={active ? color : 'none'} fillOpacity={active ? 0.3 : 0}/>
-    <path d="M19 10v1a7 7 0 01-14 0v-1M12 19v4M8 23h8" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+  <svg
+    width="25" height="25" viewBox="0 0 24 24" fill="none"
+    style={{
+      overflow: 'visible',
+      color: color,
+      transform: 'rotate(-30deg)',
+      filter: active
+        ? `drop-shadow(0 0 3px ${color}) drop-shadow(0 0 7px ${color}) drop-shadow(0 0 14px ${color})`
+        : 'none',
+      animation: active ? 'fanchantGlow 1.6s ease-in-out infinite' : 'none',
+    }}
+  >
+    <style>{`
+      @keyframes fanchantGlow {
+        0%, 100% { filter: drop-shadow(0 0 2px currentColor) drop-shadow(0 0 6px currentColor) drop-shadow(0 0 11px currentColor); }
+        50%      { filter: drop-shadow(0 0 4px currentColor) drop-shadow(0 0 10px currentColor) drop-shadow(0 0 18px currentColor); }
+      }
+    `}</style>
+    {/* one continuous lightstick outline: bulb merges into the grip, no overlapping seams */}
+    <path d="M7.7 13.09 A5.4 5.4 0 1 1 11.3 13.09 L11.2 19.9 Q11.1 21.4 9.55 21.4 L9.45 21.4 Q7.9 21.4 7.8 19.9 Z"
+          stroke={color} strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round" fill="none"/>
+    {/* slot on the grip */}
+    <line x1="9.5" y1="15.6" x2="9.5" y2="18.1" stroke={color} strokeWidth="1.7" strokeLinecap="round"/>
   </svg>
 );
 const HeartIcon = ({ color, filled }) => (

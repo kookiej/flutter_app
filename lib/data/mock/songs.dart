@@ -82,4 +82,24 @@ const List<Song> kSongs = [
     coverAccent: Color(0xFFdb2777),
     tags: ["k-pop", "걸그룹", "자신감"],
   ),
+  // DB(track_sync_data)에 가사/응원법이 적재된 곡. spotifyTrackId 프리셋으로
+  // 미로그인·미보강 상태에서도 sync 조회가 동작한다.
+  Song(
+    title: "2.0", artist: "BTS", album: "ARIRANG", duration: 170,
+    colors: [Color(0xFF1a150a), Color(0xFF3d320e), Color(0xFF7b621a)],
+    accent: Color(0xFFfbbf24), lyricsColor: Color(0xFFfde68a),
+    coverGradient: [Color(0xFF1a150a), Color(0xFF92400e), Color(0xFFd97706)],
+    coverAccent: Color(0xFFd97706),
+    tags: ["k-pop", "BTS"],
+    spotifyTrackId: "3bmpXHVie1GTy37OkXJ7Vc",
+  ),
+  Song(
+    title: "Adrenaline", artist: "ATEEZ", album: "GOLDEN HOUR : Part.4", duration: 220,
+    colors: [Color(0xFF0a0a1a), Color(0xFF1a1a3d), Color(0xFF2a2a7b)],
+    accent: Color(0xFF818cf8), lyricsColor: Color(0xFFc7d2fe),
+    coverGradient: [Color(0xFF0a0a1a), Color(0xFF1e1b4b), Color(0xFF4338ca)],
+    coverAccent: Color(0xFF4338ca),
+    tags: ["k-pop", "ATEEZ"],
+    spotifyTrackId: "2VKGO4DNyUK5UxCQB3b3DF",
+  ),
 ];

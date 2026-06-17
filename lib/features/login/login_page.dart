@@ -1,13 +1,14 @@
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
-import '../shared/icons/app_icons.dart';
-import '../shared/widgets/noise_overlay.dart';
+import 'package:provider/provider.dart';
 import '../home/home_page.dart';
-import '../../services/kakao_auth_service.dart';
-import '../../services/naver_auth_service.dart';
+import '../shared/widgets/noise_overlay.dart';
+import '../../core/utils/url_cleanup_stub.dart'
+    if (dart.library.js_interop) '../../core/utils/url_cleanup_web.dart';
+import '../../data/models/app_user.dart';
+import '../../providers/user_provider.dart';
+import '../../services/spotify_auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -16,74 +17,114 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
-  final _emailCtrl = TextEditingController();
+class _LoginPageState extends State<LoginPage>
+    with SingleTickerProviderStateMixin {
   bool _loading = false;
-  bool _kakaoLoading = false;
-  bool _naverLoading = false;
   String _error = '';
   late final AnimationController _mountCtrl;
   late final Animation<double> _opacity;
   late final Animation<Offset> _translate;
 
+  final _service = SpotifyAuthService();
+
   @override
   void initState() {
     super.initState();
-    _mountCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
-    _opacity = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _mountCtrl, curve: Curves.easeOut));
-    _translate = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _mountCtrl, curve: Curves.easeOut));
-    Future.delayed(const Duration(milliseconds: 80), () => _mountCtrl.forward());
-    _loadEmail();
+    _mountCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _opacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _mountCtrl, curve: Curves.easeOut),
+    );
+    _translate = Tween<Offset>(
+      begin: const Offset(0, 0.065),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _mountCtrl, curve: Curves.easeOut));
+
+    Future.delayed(const Duration(milliseconds: 80), () {
+      if (mounted) _mountCtrl.forward();
+    });
+
+    if (kIsWeb && Uri.base.queryParameters.containsKey('code')) {
+      _handleSpotifyWebCallback();
+    } else {
+      _tryAutoLogin();
+    }
   }
 
-  Future<void> _loadEmail() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('login_email') ?? '';
-    if (saved.isNotEmpty) setState(() => _emailCtrl.text = saved);
-  }
-
-  Future<void> _handleKakaoLogin() async {
-    setState(() { _error = ''; _kakaoLoading = true; });
-    try {
-      await KakaoAuthService().login();
+  // 세션 JWT가 살아있으면 로그인 화면을 건너뛰고 바로 홈으로
+  void _tryAutoLogin() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
-    } catch (_) {
-      if (mounted) setState(() => _error = '카카오 로그인에 실패했습니다.');
-    } finally {
-      if (mounted) setState(() => _kakaoLoading = false);
-    }
-  }
-
-  Future<void> _handleNaverLogin() async {
-    setState(() { _error = ''; _naverLoading = true; });
-    try {
-      await NaverAuthService().login();
+      setState(() => _loading = true);
+      final loggedIn = await context.read<UserProvider>().restore();
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
-    } catch (_) {
-      if (mounted) setState(() => _error = '네이버 로그인에 실패했습니다.');
-    } finally {
-      if (mounted) setState(() => _naverLoading = false);
+      if (loggedIn) {
+        _goHome();
+      } else {
+        setState(() => _loading = false);
+      }
+    });
+  }
+
+  void _handleSpotifyWebCallback() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      setState(() => _loading = true);
+      try {
+        final user = await _service.handleWebCallback(Uri.base);
+        clearUrlQuery();
+        if (!mounted) return;
+        if (user != null) {
+          await _onLoginSuccess(user);
+        } else {
+          setState(() {
+            _loading = false;
+            _error = 'Spotify 인증에 실패했습니다.';
+          });
+        }
+      } catch (e) {
+        clearUrlQuery();
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _error = 'Spotify 로그인 실패: $e';
+          });
+        }
+      }
+    });
+  }
+
+  Future<void> _handleSpotify() async {
+    if (_loading) return;
+    setState(() {
+      _error = '';
+      _loading = true;
+    });
+    try {
+      final user = await _service.login();
+      if (!mounted) return;
+      await _onLoginSuccess(user);
+    } on SpotifyWebRedirectException {
+      // Web: browser redirected to Spotify — keep spinner until page reloads
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = 'Spotify 로그인 실패: $e';
+        });
+      }
     }
   }
 
-  Future<void> _handleLogin() async {
-    if (_emailCtrl.text.isEmpty) {
-      setState(() => _error = '올바른 이메일을 입력해 주세요.');
-      return;
-    }
-    setState(() { _error = ''; _loading = true; });
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('login_email', _emailCtrl.text);
-    await Future.delayed(const Duration(milliseconds: 1200));
+  Future<void> _onLoginSuccess(AppUser user) async {
+    await context.read<UserProvider>().setUser(user);
     if (!mounted) return;
-    setState(() => _loading = false);
+    _goHome();
+  }
+
+  void _goHome() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const HomePage()),
     );
@@ -91,7 +132,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
   @override
   void dispose() {
-    _emailCtrl.dispose();
     _mountCtrl.dispose();
     super.dispose();
   }
@@ -99,36 +139,46 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: const Color(0xFF0a0a0f),
       body: Stack(
         children: [
-          // background
+          // gradient background
           Container(
             decoration: const BoxDecoration(
               gradient: RadialGradient(
-                center: Alignment(0, -1.2),
-                radius: 1.0,
-                colors: [Color(0xCC4A2FA0), Color(0x552D1B6E), Color(0xFF0D0A18), Color(0xFF060608)],
-                stops: [0, 0.35, 0.65, 1.0],
+                center: Alignment(0, -1.3),
+                radius: 1.1,
+                colors: [
+                  Color(0xCC4a2fa0),
+                  Color(0x552d1b6e),
+                  Color(0xFF0d0a18),
+                  Color(0xFF060608),
+                ],
+                stops: [0.0, 0.35, 0.65, 1.0],
               ),
             ),
           ),
           // ambient glow
           Positioned(
-            top: -120, left: 0, right: 0,
+            top: -120,
+            left: 0,
+            right: 0,
             child: Center(
-              child: Container(
-                width: 400, height: 400,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [const Color(0xFF7C3AED).withOpacity(0.13), Colors.transparent],
-                    stops: const [0, 0.7],
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
+                child: Container(
+                  width: 400,
+                  height: 400,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        const Color(0xFF7c3aed).withValues(alpha:0.13),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.7],
+                    ),
                   ),
-                ),
-                child: ImageFiltered(
-                  imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-                  child: Container(color: Colors.transparent),
                 ),
               ),
             ),
@@ -139,78 +189,110 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
             opacity: _opacity,
             child: SlideTransition(
               position: _translate,
-              child: SafeArea(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 60),
-                    _LogoArea(),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(32, 0, 32, 40),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 430),
+                  child: Column(
+                    children: [
+                      // Brand section
+                      Expanded(
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _LogoMark(),
+                              const SizedBox(height: 24),
+                              const Text(
+                                '._.',
+                                style: TextStyle(
+                                  fontFamily: 'Noto Serif KR',
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'MUSIC FOR FANS',
+                                style: TextStyle(
+                                  fontFamily: 'DM Mono',
+                                  fontSize: 10,
+                                  letterSpacing: 3,
+                                  color: Colors.white.withValues(alpha:0.25),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // Action section
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(32, 0, 32, 56),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('로그인', style: AppTextStyles.loginSubtitle),
-                            const SizedBox(height: 28),
-                            _InputField(
-                              label: '이메일', controller: _emailCtrl,
-                              placeholder: 'hello@example.com',
-                              keyboardType: TextInputType.emailAddress,
+                            _SpotifyButton(
+                              loading: _loading,
+                              onTap: _handleSpotify,
                             ),
-                            if (_error.isNotEmpty)
+                            if (_error.isNotEmpty) ...[
+                              const SizedBox(height: 16),
                               Container(
-                                margin: const EdgeInsets.only(bottom: 16),
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 10),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(10),
-                                  color: AppColors.errorBg,
-                                  border: Border.all(color: const Color(0x33EF4444)),
+                                  color:
+                                      const Color(0xFFEF4444).withValues(alpha:0.1),
+                                  border: Border.all(
+                                    color: const Color(0xFFEF4444)
+                                        .withValues(alpha:0.2),
+                                  ),
                                 ),
-                                child: Text(_error, style: AppTextStyles.bodyLight.copyWith(color: AppColors.error, fontSize: 13)),
+                                child: Text(
+                                  _error,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color:
+                                        const Color(0xFFEF4444).withValues(alpha:0.9),
+                                    fontWeight: FontWeight.w300,
+                                  ),
+                                ),
                               ),
-                            const SizedBox(height: 28),
-                            // login button
-                            _LoginButton(loading: _loading, onTap: _handleLogin),
-                            const SizedBox(height: 28),
-                            // OR divider
-                            Row(children: [
-                              Expanded(child: Divider(color: Colors.white.withOpacity(0.07))),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 14),
-                                child: Text('OR', style: AppTextStyles.monoLabel.copyWith(letterSpacing: 2)),
+                            ],
+                            const SizedBox(height: 22),
+                            Text.rich(
+                              TextSpan(
+                                text: '계속하면 ',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w300,
+                                  color: Colors.white.withValues(alpha:0.32),
+                                  height: 1.6,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: '이용약관',
+                                    style: TextStyle(
+                                        color: Colors.white.withValues(alpha:0.5)),
+                                  ),
+                                  const TextSpan(text: ' 및 '),
+                                  TextSpan(
+                                    text: '개인정보 처리방침',
+                                    style: TextStyle(
+                                        color: Colors.white.withValues(alpha:0.5)),
+                                  ),
+                                  const TextSpan(
+                                      text: '에\n동의하는 것으로 간주됩니다.'),
+                                ],
                               ),
-                              Expanded(child: Divider(color: Colors.white.withOpacity(0.07))),
-                            ]),
-                            const SizedBox(height: 28),
-                            _SocialButton(
-                              label: '카카오로 계속하기', bg: AppColors.kakaoYellow,
-                              textColor: AppColors.kakaoText,
-                              icon: AppIcons.kakao(),
-                              loading: _kakaoLoading,
-                              onTap: _handleKakaoLogin,
-                            ),
-                            const SizedBox(height: 12),
-                            _SocialButton(
-                              label: '네이버로 계속하기',
-                              bg: Colors.white,
-                              textColor: AppColors.kakaoText,
-                              icon: AppIcons.naver(),
-                              loading: _naverLoading,
-                              onTap: _handleNaverLogin,
-                            ),
-                            const SizedBox(height: 12),
-                            _SocialButton(
-                              label: 'Apple로 계속하기',
-                              bg: Colors.white.withOpacity(0.06),
-                              textColor: Colors.white,
-                              icon: AppIcons.apple(),
-                              border: Border.all(color: Colors.white.withOpacity(0.1)),
+                              textAlign: TextAlign.center,
                             ),
                           ],
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -221,144 +303,66 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   }
 }
 
-class _LogoArea extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 64, height: 64,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft, end: Alignment.bottomRight,
-              colors: [Color(0xFF1A0A2E), Color(0xFF4A2FA0), Color(0xFF7C3AED)],
-            ),
-            border: Border.all(color: const Color(0xFF4444FF).withOpacity(0.15)),
-            boxShadow: [
-              BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.2), blurRadius: 48, offset: const Offset(0, 16)),
-              BoxShadow(color: Colors.black.withOpacity(0.6), blurRadius: 16, offset: const Offset(0, 4)),
-            ],
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 28, height: 28,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [const Color(0xE6000000), const Color(0xFF7C3AED).withOpacity(0.33)],
-                    stops: const [0.25, 0.7],
-                  ),
-                  border: Border.all(color: const Color(0xFFa78bfa).withOpacity(0.3)),
-                ),
-              ),
-              Container(
-                width: 7, height: 7,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF0a0a0f),
-                  border: Border.all(color: const Color(0xFFa78bfa).withOpacity(0.5), width: 1.5),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        Text('._.',
-          style: AppTextStyles.loginTitle.copyWith(fontSize: 26, letterSpacing: -0.5)),
-        const SizedBox(height: 6),
-        Text('MUSIC FOR FANS',
-          style: AppTextStyles.monoLabel.copyWith(letterSpacing: 3, color: AppColors.textMuted)),
-        const SizedBox(height: 48),
-      ],
-    );
-  }
-}
+// ── Logo mark ─────────────────────────────────────────────────────────────────
 
-class _InputField extends StatefulWidget {
-  final String label;
-  final TextEditingController controller;
-  final String placeholder;
-  final TextInputType? keyboardType;
-
-  const _InputField({
-    required this.label, required this.controller, required this.placeholder,
-    this.keyboardType,
-  });
-
-  @override
-  State<_InputField> createState() => _InputFieldState();
-}
-
-class _InputFieldState extends State<_InputField> {
-  bool _focused = false;
-
+class _LogoMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 200),
-            style: AppTextStyles.monoLabel.copyWith(
-              color: _focused ? AppColors.accent : AppColors.textTertiary,
-              letterSpacing: 2,
-            ),
-            child: Text(widget.label),
+      width: 72,
+      height: 72,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1a0a2e), Color(0xFF4a2fa0), Color(0xFF7c3aed)],
+        ),
+        border: Border.all(
+          color: const Color(0xFFa78bfa).withValues(alpha:0.25),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF7c3aed).withValues(alpha:0.2),
+            blurRadius: 48,
+            offset: const Offset(0, 16),
           ),
-          const SizedBox(height: 8),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
+          BoxShadow(
+            color: Colors.black.withValues(alpha:0.6),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: _focused ? AppColors.accent.withOpacity(0.27) : AppColors.borderSubtle,
-              ),
-              color: _focused ? AppColors.accent.withOpacity(0.03) : Colors.white.withOpacity(0.03),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Stack(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Focus(
-                          onFocusChange: (v) => setState(() => _focused = v),
-                          child: TextField(
-                            controller: widget.controller,
-                            keyboardType: widget.keyboardType,
-                            style: AppTextStyles.bodyLight.copyWith(fontSize: 15, color: Colors.white),
-                            decoration: InputDecoration(
-                              hintText: widget.placeholder,
-                              hintStyle: AppTextStyles.bodyLight.copyWith(fontSize: 15),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.fromLTRB(18, 15, 18, 15),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  // glow bottom line
-                  Positioned(
-                    bottom: 0, left: 0, right: 0,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 300),
-                      opacity: _focused ? 1 : 0,
-                      child: Container(
-                        height: 1,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [Colors.transparent, AppColors.accent, Colors.transparent]),
-                        ),
-                      ),
-                    ),
-                  ),
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  const Color(0xE6000000),
+                  const Color(0xFF7c3aed).withValues(alpha:0.33),
                 ],
+                stops: const [0.25, 0.7],
+              ),
+              border: Border.all(
+                color: const Color(0xFFa78bfa).withValues(alpha:0.3),
+              ),
+            ),
+          ),
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF0a0a0f),
+              border: Border.all(
+                color: const Color(0xFFa78bfa).withValues(alpha:0.5),
+                width: 1.5,
               ),
             ),
           ),
@@ -368,55 +372,156 @@ class _InputFieldState extends State<_InputField> {
   }
 }
 
-class _LoginButton extends StatefulWidget {
+// ── Spotify button ────────────────────────────────────────────────────────────
+
+class _SpotifyButton extends StatefulWidget {
   final bool loading;
   final VoidCallback onTap;
-  const _LoginButton({required this.loading, required this.onTap});
+
+  const _SpotifyButton({required this.loading, required this.onTap});
 
   @override
-  State<_LoginButton> createState() => _LoginButtonState();
+  State<_SpotifyButton> createState() => _SpotifyButtonState();
 }
 
-class _LoginButtonState extends State<_LoginButton> {
+class _SpotifyButtonState extends State<_SpotifyButton> {
   bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
+    const green = Color(0xFF1ED760);
+    const greenDark = Color(0xFF1aa34a);
+
     return GestureDetector(
-      onTapDown: (_) { if (!widget.loading) setState(() => _pressed = true); },
-      onTapUp: (_) { setState(() => _pressed = false); widget.onTap(); },
+      onTapDown: (_) {
+        if (!widget.loading) setState(() => _pressed = true);
+      },
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap();
+      },
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedScale(
         scale: _pressed ? 0.97 : 1.0,
         duration: const Duration(milliseconds: 120),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          height: 54,
+          duration: const Duration(milliseconds: 200),
+          height: 56,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: widget.loading
-                ? null
-                : const LinearGradient(
-                    begin: Alignment.topLeft, end: Alignment.bottomRight,
-                    colors: [Color(0xFF4A2FA0), Color(0xFF7C3AED)]),
-            color: widget.loading ? AppColors.accent.withOpacity(0.3) : null,
-            border: Border.all(color: AppColors.accent.withOpacity(0.3)),
-            boxShadow: widget.loading ? [] : [
-              BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.4), blurRadius: 32, offset: const Offset(0, 8)),
+            borderRadius: BorderRadius.circular(28),
+            color: widget.loading ? greenDark : green,
+            boxShadow: widget.loading
+                ? []
+                : [
+                    BoxShadow(
+                      color: green.withValues(alpha:0.32),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (widget.loading)
+                const _Spinner(color: Color(0xFF191414))
+              else ...[
+                const _SpotifyIcon(),
+                const SizedBox(width: 12),
+                const Text(
+                  'Spotify로 계속하기',
+                  style: TextStyle(
+                    fontFamily: 'Noto Sans KR',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF191414),
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
             ],
           ),
-          alignment: Alignment.center,
-          child: widget.loading
-              ? const _Spinner()
-              : Text('이메일로 계속하기', style: AppTextStyles.body.copyWith(fontSize: 15, letterSpacing: 0.5)),
         ),
       ),
     );
   }
 }
 
+// ── Spotify SVG icon (official brand mark) ────────────────────────────────────
+
+class _SpotifyIcon extends StatelessWidget {
+  const _SpotifyIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 22,
+      height: 22,
+      child: CustomPaint(painter: _SpotifyPainter()),
+    );
+  }
+}
+
+class _SpotifyPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF191414)
+      ..style = PaintingStyle.fill;
+
+    final s = size.width / 24.0;
+    final path = Path();
+    // Spotify logo path (official)
+    path.addOval(Rect.fromCircle(
+        center: Offset(12 * s, 12 * s), radius: 12 * s));
+    canvas.drawPath(path, paint);
+
+    final white = Paint()
+      ..color = const Color(0xFF1ED760)
+      ..style = PaintingStyle.fill;
+
+    // Draw the three arcs as simplified bezier curves
+    final p2 = Path();
+    // top arc
+    p2.moveTo(6.0 * s, 8.76 * s);
+    p2.cubicTo(9.92 * s, 6.44 * s, 15.28 * s, 5.88 * s, 19.8 * s, 7.56 * s);
+    p2.cubicTo(20.34 * s, 7.74 * s, 20.52 * s, 8.46 * s, 20.22 * s, 8.94 * s);
+    p2.cubicTo(19.98 * s, 9.3 * s, 19.56 * s, 9.42 * s, 19.2 * s, 9.24 * s);
+    p2.cubicTo(15.12 * s, 7.68 * s, 9.72 * s, 8.22 * s, 6.36 * s, 10.44 * s);
+    p2.cubicTo(6.06 * s, 10.62 * s, 5.64 * s, 10.5 * s, 5.46 * s, 10.2 * s);
+    p2.cubicTo(5.28 * s, 9.84 * s, 5.4 * s, 9.36 * s, 6.0 * s, 8.76 * s);
+    p2.close();
+    // middle arc
+    p2.moveTo(5.88 * s, 12.54 * s);
+    p2.cubicTo(9.24 * s, 10.44 * s, 13.68 * s, 9.84 * s, 17.4 * s, 11.16 * s);
+    p2.cubicTo(17.88 * s, 11.28 * s, 18.12 * s, 11.82 * s, 18.0 * s, 12.3 * s);
+    p2.cubicTo(17.88 * s, 12.72 * s, 17.4 * s, 12.9 * s, 16.98 * s, 12.78 * s);
+    p2.cubicTo(13.68 * s, 11.58 * s, 9.72 * s, 12.12 * s, 6.78 * s, 14.04 * s);
+    p2.cubicTo(6.42 * s, 14.28 * s, 5.94 * s, 14.16 * s, 5.7 * s, 13.8 * s);
+    p2.cubicTo(5.46 * s, 13.44 * s, 5.58 * s, 12.96 * s, 5.88 * s, 12.54 * s);
+    p2.close();
+    // bottom arc
+    p2.moveTo(6.6 * s, 16.2 * s);
+    p2.cubicTo(9.36 * s, 14.46 * s, 12.96 * s, 14.1 * s, 15.96 * s, 15.24 * s);
+    p2.cubicTo(16.38 * s, 15.42 * s, 16.56 * s, 15.9 * s, 16.38 * s, 16.32 * s);
+    p2.cubicTo(16.2 * s, 16.68 * s, 15.72 * s, 16.86 * s, 15.36 * s, 16.68 * s);
+    p2.cubicTo(12.72 * s, 15.66 * s, 9.6 * s, 15.96 * s, 7.2 * s, 17.52 * s);
+    p2.cubicTo(6.9 * s, 17.7 * s, 6.48 * s, 17.64 * s, 6.3 * s, 17.34 * s);
+    p2.cubicTo(6.12 * s, 17.04 * s, 6.18 * s, 16.56 * s, 6.6 * s, 16.2 * s);
+    p2.close();
+
+    canvas.drawPath(p2, white);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ── Spinner ───────────────────────────────────────────────────────────────────
+
 class _Spinner extends StatefulWidget {
-  const _Spinner();
+  final Color color;
+  const _Spinner({required this.color});
 
   @override
   State<_Spinner> createState() => _SpinnerState();
@@ -428,74 +533,29 @@ class _SpinnerState extends State<_Spinner> with SingleTickerProviderStateMixin 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800))..repeat();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat();
   }
 
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return RotationTransition(
       turns: _ctrl,
       child: SizedBox(
-        width: 20, height: 20,
+        width: 20,
+        height: 20,
         child: CircularProgressIndicator(
-          strokeWidth: 2, color: Colors.white,
-          backgroundColor: Colors.white.withOpacity(0.25),
-        ),
-      ),
-    );
-  }
-}
-
-class _SocialButton extends StatefulWidget {
-  final String label;
-  final Color bg;
-  final Color textColor;
-  final Widget icon;
-  final Border? border;
-  final bool loading;
-  final VoidCallback? onTap;
-
-  const _SocialButton({
-    required this.label, required this.bg, required this.textColor,
-    required this.icon, this.border, this.loading = false, this.onTap,
-  });
-
-  @override
-  State<_SocialButton> createState() => _SocialButtonState();
-}
-
-class _SocialButtonState extends State<_SocialButton> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) { if (!widget.loading) setState(() => _pressed = true); },
-      onTapUp: (_) { setState(() => _pressed = false); if (!widget.loading) widget.onTap?.call(); },
-      onTapCancel: () => setState(() => _pressed = false),
-      child: AnimatedScale(
-        scale: _pressed ? 0.97 : 1.0,
-        duration: const Duration(milliseconds: 120),
-        child: Container(
-          height: 50,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            color: widget.loading ? widget.bg.withOpacity(0.6) : widget.bg,
-            border: widget.border,
-          ),
-          child: widget.loading
-              ? const Center(child: _Spinner())
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    widget.icon,
-                    const SizedBox(width: 10),
-                    Text(widget.label, style: AppTextStyles.body.copyWith(color: widget.textColor, fontSize: 14)),
-                  ],
-                ),
+          strokeWidth: 2,
+          color: widget.color,
+          backgroundColor: widget.color.withValues(alpha:0.25),
         ),
       ),
     );

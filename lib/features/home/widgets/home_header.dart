@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/greeting.dart';
 import '../../../providers/notification_provider.dart';
+import '../../../providers/user_provider.dart';
 import '../../shared/icons/app_icons.dart';
 
 class HomeHeader extends StatefulWidget {
@@ -37,8 +38,8 @@ class _HomeHeaderState extends State<HomeHeader> {
             ),
           ),
           const SizedBox(width: 12),
-          Consumer<NotificationProvider>(
-            builder: (_, notifs, __) => GestureDetector(
+          Consumer2<NotificationProvider, UserProvider>(
+            builder: (_, notifs, userProv, child) => GestureDetector(
               onTap: widget.onProfileTap,
               child: Stack(
                 children: [
@@ -48,9 +49,17 @@ class _HomeHeaderState extends State<HomeHeader> {
                       shape: BoxShape.circle,
                       color: Colors.white.withOpacity(0.06),
                       border: Border.all(color: AppColors.borderSubtle),
+                      image: userProv.user?.pfpUrl != null
+                          ? DecorationImage(
+                              image: NetworkImage(userProv.user!.pfpUrl!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
                     ),
                     alignment: Alignment.center,
-                    child: AppIcons.profile(color: AppColors.textSecondary),
+                    child: userProv.user?.pfpUrl == null
+                        ? AppIcons.profile(color: AppColors.textSecondary)
+                        : null,
                   ),
                   if (notifs.hasUnread)
                     Positioned(

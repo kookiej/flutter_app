@@ -133,13 +133,13 @@ class AppIcons {
     width: 22, height: 22,
   );
 
+  // 응원봉(lightstick) — 프로토타입 FanchantIcon 그대로. 회전(-30°)·글로우는 호출부에서 처리.
   static Widget fanchant({Color? color}) => SvgPicture.string(
-    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
-    '<path d="M12 2c-1.7 0-3 1.2-3 2.6 0 .7.3 1.3.7 1.8L12 9l2.3-2.6c.4-.5.7-1.1.7-1.8C15 3.2 13.7 2 12 2z" stroke="${_hex(color ?? Colors.white)}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
-    '<path d="M12 9v13" stroke="${_hex(color ?? Colors.white)}" stroke-width="1.8" stroke-linecap="round"/>'
-    '<path d="M8 13H4l1 9h14l1-9h-4" stroke="${_hex(color ?? Colors.white)}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
+    '<svg width="25" height="25" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    '<path d="M7.7 13.09 A5.4 5.4 0 1 1 11.3 13.09 L11.2 19.9 Q11.1 21.4 9.55 21.4 L9.45 21.4 Q7.9 21.4 7.8 19.9 Z" stroke="${_hex(color ?? Colors.white)}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" fill="none"/>'
+    '<line x1="9.5" y1="15.6" x2="9.5" y2="18.1" stroke="${_hex(color ?? Colors.white)}" stroke-width="1.7" stroke-linecap="round"/>'
     '</svg>',
-    width: 22, height: 22,
+    width: 25, height: 25,
   );
 
   static Widget chevronDown({Color? color}) => SvgPicture.string(

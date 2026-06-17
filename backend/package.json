@@ -1,0 +1,20 @@
+{
+  "name": "dotmusic-backend",
+  "version": "1.0.0",
+  "description": "OAuth callback server for dot music Flutter web app",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "sync": "node scripts/sync_data.js",
+    "import": "node scripts/import_to_db.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.5",
+    "ssh2-sftp-client": "^11.0.0"
+  }
+}

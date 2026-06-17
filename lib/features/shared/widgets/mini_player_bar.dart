@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../providers/catalog_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../icons/app_icons.dart';
 import 'mini_cover.dart';
@@ -15,7 +16,7 @@ class MiniPlayerBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<PlayerProvider>(
       builder: (context, player, _) {
-        final song = player.currentSong;
+        final song = context.watch<CatalogProvider>().songs[player.songIdx];
         return GestureDetector(
           onTap: onTap,
           child: Container(

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
-import '../../data/mock/songs.dart';
-import '../../data/mock/artists.dart';
+import '../../providers/catalog_provider.dart';
 import '../../providers/player_provider.dart';
 import '../search/search_page.dart';
 import '../shared/widgets/bottom_nav_bar.dart';
@@ -58,7 +57,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     final player = context.watch<PlayerProvider>();
-    final song = player.currentSong;
+    final song = context.watch<CatalogProvider>().songs[player.songIdx];
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -139,6 +138,9 @@ class _HomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final catalog = context.watch<CatalogProvider>();
+    final songs = catalog.songs;
+    final artists = catalog.artists;
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
@@ -156,11 +158,11 @@ class _HomeContent extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
               itemCount: 4,
               itemBuilder: (_, i) => FeaturedCard(
-                song: kSongs[i],
+                song: songs[i],
                 index: i,
                 onTap: () {
                   context.read<PlayerProvider>().playSongInPlace(i);
-                  onToast(kSongs[i]);
+                  onToast(songs[i]);
                 },
               ),
             ),
@@ -173,15 +175,15 @@ class _HomeContent extends StatelessWidget {
         SliverList(
           delegate: SliverChildBuilderDelegate(
             (_, i) => SongRow(
-              song: kSongs[i],
+              song: songs[i],
               index: i,
               onTap: () {
                 context.read<PlayerProvider>().playSongInPlace(i);
-                onToast(kSongs[i]);
+                onToast(songs[i]);
               },
               onSwipeAdd: () {
                 context.read<PlayerProvider>().addToQueue(i);
-                onToast(kSongs[i]);
+                onToast(songs[i]);
               },
             ),
             childCount: 5,
@@ -195,8 +197,8 @@ class _HomeContent extends StatelessWidget {
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-              itemCount: kArtists.length,
-              itemBuilder: (_, i) => ArtistCard(artist: kArtists[i]),
+              itemCount: artists.length,
+              itemBuilder: (_, i) => ArtistCard(artist: artists[i]),
             ),
           ),
         ),
@@ -208,14 +210,14 @@ class _HomeContent extends StatelessWidget {
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-              itemCount: kSongs.length,
+              itemCount: songs.length,
               itemBuilder: (_, i) {
-                final idx = kSongs.length - 1 - i;
+                final idx = songs.length - 1 - i;
                 return CompactCard(
-                  song: kSongs[idx],
+                  song: songs[idx],
                   onTap: () {
                     context.read<PlayerProvider>().playSongInPlace(idx);
-                    onToast(kSongs[idx]);
+                    onToast(songs[idx]);
                   },
                 );
               },

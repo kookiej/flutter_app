@@ -325,6 +325,14 @@ const MOCK_NOTIFS = [
   { id: 3, text: "팔로우한 아티스트가 라이브를 시작했어요", time: "3시간 전", read: true },
 ];
 
+// 로그인한 Spotify 계정 (앱에서는 /api/me 응답 — 프로토타입에선 모의 데이터)
+const MOCK_USER = localStorage.getItem('login_provider') === 'spotify'
+  ? { displayName: '연', spotifyUserId: 'yeon_music', pfpUrl: null, isPremium: true }
+  : null;
+const USER_NAME = MOCK_USER?.displayName ?? '뮤직 팬';
+const USER_HANDLE = MOCK_USER ? `@${MOCK_USER.spotifyUserId}` : '@musicfan_kr';
+const USER_PFP = MOCK_USER?.pfpUrl ?? null;
+
 function ProfilePanel({ visible, onClose }) {
   const [notifs, setNotifs] = useState(MOCK_NOTIFS);
   const swipeRef = useRef(null);
@@ -376,21 +384,26 @@ function ProfilePanel({ visible, onClose }) {
         <div style={{ flex: 1, overflowY: 'scroll', scrollbarWidth: 'none', padding: '8px 0 20px' }}>
           <div style={{ padding: '12px 20px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+              {/* Avatar: pfp 이미지 또는 이름 첫 글자 (앱과 동일한 fallback) */}
               <div style={{
                 width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
-                background: 'rgba(167,139,250,0.1)',
+                background: USER_PFP
+                  ? `url(${USER_PFP}) center/cover no-repeat`
+                  : 'linear-gradient(135deg, #4A2FA0, #7C3AED)',
                 border: '1.5px solid rgba(167,139,250,0.3)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 4px 16px rgba(124,58,237,0.2)',
               }}>
-                <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-                  <circle cx="18" cy="14" r="6" stroke="rgba(167,139,250,0.8)" strokeWidth="1.6"/>
-                  <path d="M4 34c0-7.73 6.27-14 14-14s14 6.27 14 14" stroke="rgba(167,139,250,0.8)" strokeWidth="1.6" strokeLinecap="round"/>
-                </svg>
+                {!USER_PFP && (
+                  <span style={{
+                    fontFamily: "'Noto Serif KR', serif",
+                    fontSize: 20, fontWeight: 900, color: '#fff',
+                  }}>{USER_NAME.charAt(0).toUpperCase()}</span>
+                )}
               </div>
               <div style={{ flex: 1, paddingTop: 2 }}>
-                <div style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: -0.2 }}>뮤직 팬</div>
-                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: 0.5, marginTop: 2 }}>@musicfan_kr</div>
+                <div style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: -0.2 }}>{USER_NAME}</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: 0.5, marginTop: 2 }}>{USER_HANDLE}</div>
               </div>
             </div>
             <button style={{
@@ -698,11 +711,19 @@ function SearchPage() {
             onClick={() => setPanelOpen(true)}
             style={{ width: 40, height: 40, borderRadius: 12, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
           >
+            {USER_PFP ? (
+              <div style={{
+                width: 26, height: 26, borderRadius: '50%',
+                background: `url(${USER_PFP}) center/cover no-repeat`,
+                border: '1.5px solid rgba(255,255,255,0.2)',
+              }} />
+            ) : (
               <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-              <circle cx="13" cy="13" r="12" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5"/>
-              <circle cx="13" cy="11" r="3.5" stroke="rgba(255,255,255,0.45)" strokeWidth="1.4"/>
-              <path d="M7 21.5c0-3.31 2.69-6 6-6s6 2.69 6 6" stroke="rgba(255,255,255,0.45)" strokeWidth="1.4" strokeLinecap="round"/>
-            </svg>
+                <circle cx="13" cy="13" r="12" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5"/>
+                <circle cx="13" cy="11" r="3.5" stroke="rgba(255,255,255,0.45)" strokeWidth="1.4"/>
+                <path d="M7 21.5c0-3.31 2.69-6 6-6s6 2.69 6 6" stroke="rgba(255,255,255,0.45)" strokeWidth="1.4" strokeLinecap="round"/>
+              </svg>
+            )}
             {MOCK_NOTIFS.some(n => !n.read) && (
               <div style={{
                 position: 'absolute', top: 5, right: 5,
