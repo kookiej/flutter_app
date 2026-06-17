@@ -108,6 +108,7 @@ class _PlayerPageState extends State<PlayerPage> {
                         Positioned(
                           left: 0, right: 0, bottom: 0,
                           child: LyricsPanel(
+                            key: ValueKey(player.songIdx), // 곡 전환 시 패널 재생성 → 축소 기본값 복귀
                             song: song,
                             entries: sync.data!.entries,
                             currentTime: player.currentTime,
