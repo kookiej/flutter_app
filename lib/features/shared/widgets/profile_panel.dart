@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/avatar_palette.dart';
 import '../../../providers/notification_provider.dart';
 import '../../../providers/user_provider.dart';
 import '../icons/app_icons.dart';
+import 'notifications_view.dart';
+import 'profile_edit_view.dart';
+import 'settings_view.dart';
+import 'slide_over_panel.dart';
 
 class ProfilePanel extends StatefulWidget {
   final bool visible;
@@ -96,12 +101,47 @@ class _ProfilePanelState extends State<ProfilePanel> with SingleTickerProviderSt
   }
 }
 
-class _PanelContent extends StatelessWidget {
+enum _SubView { none, profile, settings, notifs }
+
+class _PanelContent extends StatefulWidget {
   final VoidCallback onClose;
   const _PanelContent({required this.onClose});
 
   @override
+  State<_PanelContent> createState() => _PanelContentState();
+}
+
+class _PanelContentState extends State<_PanelContent> {
+  _SubView _sub = _SubView.none;
+
+  void _open(_SubView v) => setState(() => _sub = v);
+  void _closeSub() => setState(() => _sub = _SubView.none);
+
+  @override
   Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        _buildMain(context),
+        if (_sub == _SubView.profile)
+          SlideOverPanel(
+            onClosed: _closeSub,
+            builder: (_, close) => ProfileEditView(onBack: close),
+          ),
+        if (_sub == _SubView.settings)
+          SlideOverPanel(
+            onClosed: _closeSub,
+            builder: (_, close) => SettingsView(onBack: close),
+          ),
+        if (_sub == _SubView.notifs)
+          SlideOverPanel(
+            onClosed: _closeSub,
+            builder: (_, close) => NotificationsView(onBack: close),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMain(BuildContext context) {
     return Consumer<NotificationProvider>(
       builder: (context, notifs, _) {
         return ListView(
@@ -111,38 +151,46 @@ class _PanelContent extends StatelessWidget {
             Consumer<UserProvider>(
               builder: (context, userProv, _) {
                 final user = userProv.user;
-                final name = user?.displayName ?? '뮤직 팬';
+                final name = userProv.effectiveName;
                 final handle = user != null ? '@${user.spotifyUserId}' : '@musicfan_kr';
                 final initial = name.isNotEmpty ? name.characters.first.toUpperCase() : 'M';
-                return Row(
-                  children: [
-                    Container(
-                      width: 52, height: 52,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(colors: [Color(0xFF4A2FA0), Color(0xFF7C3AED)]),
-                        image: user?.pfpUrl != null
-                            ? DecorationImage(image: NetworkImage(user!.pfpUrl!), fit: BoxFit.cover)
+                final photo = userProv.localPhotoBytes;
+                final pal = kAvatarPalette[userProv.colorIdx % kAvatarPalette.length];
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _open(_SubView.profile),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 52, height: 52,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: photo == null
+                              ? LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: pal)
+                              : null,
+                          image: photo != null
+                              ? DecorationImage(image: MemoryImage(photo), fit: BoxFit.cover)
+                              : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: photo == null
+                            ? Text(initial, style: AppTextStyles.sectionTitle)
                             : null,
                       ),
-                      alignment: Alignment.center,
-                      child: user?.pfpUrl == null
-                          ? Text(initial, style: AppTextStyles.sectionTitle)
-                          : null,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(name, style: AppTextStyles.body),
-                          Text(handle, style: AppTextStyles.caption),
-                          const SizedBox(height: 4),
-                          Text('프로필 보기 >', style: AppTextStyles.monoLabel.copyWith(color: AppColors.accent.withOpacity(0.7))),
-                        ],
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(name, style: AppTextStyles.body),
+                            Text(handle, style: AppTextStyles.caption),
+                            const SizedBox(height: 4),
+                            Text('프로필 보기 >', style: AppTextStyles.monoLabel.copyWith(color: AppColors.accent.withOpacity(0.7))),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 );
               },
             ),
@@ -150,12 +198,18 @@ class _PanelContent extends StatelessWidget {
             Divider(color: AppColors.borderSubtle, height: 1),
             const SizedBox(height: 16),
             // settings row
-            Row(
-              children: [
-                AppIcons.settings(color: AppColors.textTertiary),
-                const SizedBox(width: 12),
-                Text('설정', style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
-              ],
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _open(_SubView.settings),
+              child: Row(
+                children: [
+                  AppIcons.settings(color: AppColors.textTertiary),
+                  const SizedBox(width: 12),
+                  Text('설정', style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
+                  const Spacer(),
+                  AppIcons.chevronRight(color: AppColors.textFaint),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             Divider(color: AppColors.borderSubtle, height: 1),
@@ -177,14 +231,18 @@ class _PanelContent extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text('알림', style: AppTextStyles.monoLabel),
                       const Spacer(),
-                      Text('전체 보기', style: AppTextStyles.monoLabel.copyWith(color: AppColors.textFaint)),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => _open(_SubView.notifs),
+                        child: Text('전체 보기', style: AppTextStyles.monoLabel.copyWith(color: AppColors.textFaint)),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   if (notifs.notifs.isEmpty)
                     Text('새 알림이 없어요', style: AppTextStyles.caption)
                   else
-                    ...notifs.notifs.map((n) => Padding(
+                    ...notifs.notifs.take(3).map((n) => Padding(
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       child: Row(
                         children: [

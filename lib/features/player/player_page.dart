@@ -12,9 +12,11 @@ import '../../providers/sync_provider.dart';
 import '../shared/icons/app_icons.dart';
 import '../shared/widgets/mini_cover.dart';
 import '../shared/widgets/noise_overlay.dart';
+import '../shared/widgets/toast_snackbar.dart';
 import 'widgets/album_cover.dart';
 import 'widgets/control_buttons.dart';
 import 'widgets/lyrics_panel.dart';
+import 'widgets/more_menu_sheet.dart';
 import 'widgets/progress_bar.dart';
 
 class PlayerPage extends StatefulWidget {
@@ -28,6 +30,17 @@ class PlayerPage extends StatefulWidget {
 
 class _PlayerPageState extends State<PlayerPage> {
   bool _queueVisible = false;
+  String? _toastMessage;
+
+  Future<void> _openMoreMenu(Song song) async {
+    final msg = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withOpacity(0.55),
+      builder: (_) => MoreMenuSheet(song: song),
+    );
+    if (msg != null && mounted) setState(() => _toastMessage = msg);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +96,7 @@ class _PlayerPageState extends State<PlayerPage> {
                             style: AppTextStyles.monoLabel.copyWith(letterSpacing: 2, color: Colors.white.withOpacity(0.35))),
                         ),
                         GestureDetector(
-                          onTap: () {},
+                          onTap: () => _openMoreMenu(song),
                           child: Container(
                             width: 40, height: 40,
                             alignment: Alignment.center,
@@ -189,6 +202,18 @@ class _PlayerPageState extends State<PlayerPage> {
             // queue sheet (overlay)
             if (_queueVisible)
               _QueueSheetWrapper(onClose: () => setState(() => _queueVisible = false)),
+            // 더보기 메뉴 선택 피드백 토스트
+            if (_toastMessage != null)
+              Positioned(
+                left: 0, right: 0, bottom: 40,
+                child: SafeArea(
+                  top: false,
+                  child: ToastSnackbar(
+                    message: _toastMessage,
+                    onDone: () => setState(() => _toastMessage = null),
+                  ),
+                ),
+              ),
           ],
         );
       },

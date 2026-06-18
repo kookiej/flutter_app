@@ -10,6 +10,7 @@ import '../shared/widgets/noise_overlay.dart';
 import '../shared/widgets/profile_panel.dart';
 import '../shared/widgets/toast_snackbar.dart';
 import '../player/player_page.dart';
+import 'see_all_page.dart';
 import 'widgets/home_header.dart';
 import 'widgets/section_header.dart';
 import 'widgets/featured_card.dart';
@@ -141,6 +142,8 @@ class _HomeContent extends StatelessWidget {
     final catalog = context.watch<CatalogProvider>();
     final songs = catalog.songs;
     final artists = catalog.artists;
+    final allIdx = List.generate(songs.length, (i) => i);
+    final reversedIdx = List.generate(songs.length, (i) => songs.length - 1 - i);
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
@@ -149,7 +152,9 @@ class _HomeContent extends StatelessWidget {
             child: HomeHeader(onProfileTap: onProfileTap),
           ),
         ),
-        SliverToBoxAdapter(child: SectionHeader(title: '추천 트랙', action: '전체보기 >')),
+        SliverToBoxAdapter(child: SectionHeader(title: '추천 트랙', action: '전체보기 >',
+          onAction: () => Navigator.of(context).push(
+            SeeAllPage.route(title: '추천 트랙', songIndices: allIdx)))),
         SliverToBoxAdapter(
           child: SizedBox(
             height: 310,
@@ -171,7 +176,9 @@ class _HomeContent extends StatelessWidget {
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
         const SliverToBoxAdapter(child: ChipFilterRow()),
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
-        SliverToBoxAdapter(child: SectionHeader(title: '최근 재생', action: '전체보기 >')),
+        SliverToBoxAdapter(child: SectionHeader(title: '최근 재생', action: '전체보기 >',
+          onAction: () => Navigator.of(context).push(
+            SeeAllPage.route(title: '최근 재생', songIndices: allIdx)))),
         SliverList(
           delegate: SliverChildBuilderDelegate(
             (_, i) => SongRow(
@@ -190,7 +197,9 @@ class _HomeContent extends StatelessWidget {
           ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
-        SliverToBoxAdapter(child: SectionHeader(title: '좋아하는 아티스트', action: '전체보기 >')),
+        SliverToBoxAdapter(child: SectionHeader(title: '좋아하는 아티스트', action: '전체보기 >',
+          onAction: () => Navigator.of(context).push(
+            SeeAllPage.route(title: '좋아하는 아티스트', artists: artists)))),
         SliverToBoxAdapter(
           child: SizedBox(
             height: 100,
@@ -203,7 +212,9 @@ class _HomeContent extends StatelessWidget {
           ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
-        SliverToBoxAdapter(child: SectionHeader(title: '당신을 위한 추천', action: '전체보기 >')),
+        SliverToBoxAdapter(child: SectionHeader(title: '당신을 위한 추천', action: '전체보기 >',
+          onAction: () => Navigator.of(context).push(
+            SeeAllPage.route(title: '당신을 위한 추천', songIndices: reversedIdx)))),
         SliverToBoxAdapter(
           child: SizedBox(
             height: 185,

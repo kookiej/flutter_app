@@ -9,6 +9,7 @@ import 'providers/like_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/player_provider.dart';
 import 'providers/search_provider.dart';
+import 'providers/settings_provider.dart';
 import 'providers/sync_provider.dart';
 import 'providers/user_provider.dart';
 import 'services/spotify_auth_service.dart';
@@ -28,6 +29,7 @@ class DotMusicApp extends StatelessWidget {
           return s;
         }),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
         ChangeNotifierProvider(create: (_) => LikeProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => CatalogProvider()),

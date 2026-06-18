@@ -3,10 +3,12 @@ import '../../../data/models/song.dart';
 import '../../../core/theme/app_text_styles.dart';
 
 class ToastSnackbar extends StatefulWidget {
-  final Song song;
+  final Song? song;
+  final String? message;
   final VoidCallback onDone;
 
-  const ToastSnackbar({super.key, required this.song, required this.onDone});
+  const ToastSnackbar({super.key, this.song, this.message, required this.onDone})
+      : assert(song != null || message != null);
 
   @override
   State<ToastSnackbar> createState() => _ToastSnackbarState();
@@ -58,7 +60,7 @@ class _ToastSnackbarState extends State<ToastSnackbar> with SingleTickerProvider
             child: BackdropFilter(
               filter: const ColorFilter.srgbToLinearGamma(),
               child: Text(
-                '재생목록에 추가됨 · ${widget.song.title} — ${widget.song.artist}',
+                widget.message ?? '재생목록에 추가됨 · ${widget.song!.title} — ${widget.song!.artist}',
                 style: AppTextStyles.bodyLight.copyWith(fontSize: 13),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

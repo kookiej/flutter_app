@@ -279,7 +279,7 @@ function MiniPlayer({ song, isPlaying, onToggle, onNext, onPrev, onClick, progre
   );
 }
 
-function SectionHeader({ title, sub }) {
+function SectionHeader({ title, sub, onSeeAll }) {
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
@@ -290,7 +290,7 @@ function SectionHeader({ title, sub }) {
         fontSize: 17, fontWeight: 700, color: '#fff', letterSpacing: -0.3,
       }}>{title}</div>
       {sub && (
-        <button style={{
+        <button onClick={onSeeAll} style={{
           background: 'none', border: 'none', cursor: 'pointer',
           display: 'flex', alignItems: 'center', gap: 2,
           fontFamily: "'DM Mono', monospace",
@@ -511,11 +511,295 @@ const USER_NAME = MOCK_USER?.displayName ?? '뮤직 팬';
 const USER_HANDLE = MOCK_USER ? `@${MOCK_USER.spotifyUserId}` : '@musicfan_kr';
 const USER_PFP = MOCK_USER?.pfpUrl ?? null;
 
+const AVATAR_PALETTE = [
+  ['#4A2FA0', '#7C3AED'],
+  ['#c026d3', '#7c3aed'],
+  ['#2563eb', '#0ea5e9'],
+  ['#16a34a', '#10b981'],
+  ['#ea580c', '#f59e0b'],
+  ['#e11d48', '#f43f5e'],
+];
+
+function SubHeader({ title, onBack, right }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '16px 14px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+      <button onClick={onBack} style={{ width: 40, height: 40, borderRadius: '50%', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      </button>
+      <span style={{ fontFamily: "'Noto Serif KR', serif", fontSize: 17, fontWeight: 700, color: '#fff', letterSpacing: -0.3 }}>{title}</span>
+      {right && <div style={{ marginLeft: 'auto' }}>{right}</div>}
+    </div>
+  );
+}
+
+function ProfileEditView({ active, profile, onSave, onBack }) {
+  const ACCENT = '#a78bfa';
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(profile.name);
+  const [photo, setPhoto] = useState(profile.photo);
+  const [colorIdx, setColorIdx] = useState(profile.colorIdx);
+  const fileRef = useRef(null);
+  const resetDraft = () => { setName(profile.name); setPhoto(profile.photo); setColorIdx(profile.colorIdx); };
+  useEffect(() => {
+    if (active) { setEditing(false); setName(profile.name); setPhoto(profile.photo); setColorIdx(profile.colorIdx); }
+  }, [active]);
+  const pickPhoto = (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => setPhoto(r.result);
+    r.readAsDataURL(f);
+  };
+  const pal = AVATAR_PALETTE[colorIdx] || AVATAR_PALETTE[0];
+  const handleBack = () => { if (editing) { resetDraft(); setEditing(false); } else { onBack(); } };
+  const handleSave = () => { onSave({ name: name.trim() || profile.name, photo, colorIdx }); setEditing(false); };
+  const editBtn = !editing ? (
+    <button onClick={() => setEditing(true)} style={{ width: 40, height: 40, borderRadius: '50%', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    </button>
+  ) : null;
+  return (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 3, background: 'linear-gradient(160deg, #17141f 0%, #0f0d16 100%)',
+      transform: active ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 0.36s cubic-bezier(0.4,0,0.2,1)',
+      display: 'flex', flexDirection: 'column', pointerEvents: active ? 'auto' : 'none' }}>
+      <SubHeader title="프로필 보기" onBack={handleBack} right={editBtn} />
+      <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none', padding: '26px 24px 30px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+          <div style={{ position: 'relative' }}>
+            <div style={{ width: 104, height: 104, borderRadius: '50%',
+              background: photo ? `url(${photo}) center/cover no-repeat` : `linear-gradient(135deg, ${pal[0]}, ${pal[1]})`,
+              border: '2px solid rgba(167,139,250,0.35)', boxShadow: '0 8px 28px rgba(124,58,237,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {!photo && <span style={{ fontFamily: "'Noto Serif KR', serif", fontSize: 40, fontWeight: 900, color: '#fff' }}>{(name || '?').charAt(0).toUpperCase()}</span>}
+            </div>
+            {editing && (
+              <button onClick={() => fileRef.current && fileRef.current.click()} style={{ position: 'absolute', right: -2, bottom: -2,
+                width: 34, height: 34, borderRadius: '50%', background: ACCENT, border: '3px solid #15121f', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#15121f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="13" r="4" stroke="#15121f" strokeWidth="2"/></svg>
+              </button>
+            )}
+            <input ref={fileRef} type="file" accept="image/*" onChange={pickPhoto} style={{ display: 'none' }} />
+          </div>
+          {editing && photo && <button onClick={() => setPhoto(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontFamily: "'Noto Sans KR', sans-serif", fontSize: 11 }}>사진 제거</button>}
+        </div>
+        {editing && (
+          <div style={{ marginTop: 22 }}>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.3)', marginBottom: 12 }}>프로필 색상</div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              {AVATAR_PALETTE.map((p, i) => (
+                <button key={i} onClick={() => { setColorIdx(i); setPhoto(null); }} style={{
+                  width: 40, height: 40, borderRadius: '50%', cursor: 'pointer',
+                  background: `linear-gradient(135deg, ${p[0]}, ${p[1]})`,
+                  border: (colorIdx === i && !photo) ? '2.5px solid #fff' : '2.5px solid transparent',
+                  boxShadow: (colorIdx === i && !photo) ? `0 0 0 2px ${ACCENT}` : 'none' }} />
+              ))}
+            </div>
+          </div>
+        )}
+        <div style={{ marginTop: 26 }}>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.3)', marginBottom: 10 }}>닉네임</div>
+          {editing ? (
+            <input value={name} onChange={e => setName(e.target.value)} maxLength={20} placeholder="닉네임 입력"
+              style={{ width: '100%', boxSizing: 'border-box', padding: '14px 16px', borderRadius: 14,
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff',
+                fontFamily: "'Noto Sans KR', sans-serif", fontSize: 15, outline: 'none' }} />
+          ) : (
+            <div style={{ width: '100%', boxSizing: 'border-box', padding: '14px 16px', borderRadius: 14,
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: '#fff',
+              fontFamily: "'Noto Sans KR', sans-serif", fontSize: 15 }}>{name}</div>
+          )}
+        </div>
+      </div>
+      {editing && (
+        <div style={{ padding: '14px 24px 26px', flexShrink: 0 }}>
+          <button onClick={handleSave} style={{
+            width: '100%', height: 52, borderRadius: 26, border: 'none', cursor: 'pointer',
+            background: 'linear-gradient(135deg, #4a2fa0, #7c3aed)', color: '#fff',
+            fontFamily: "'Noto Sans KR', sans-serif", fontSize: 15, fontWeight: 700,
+            boxShadow: '0 8px 24px rgba(124,58,237,0.4)' }}>저장</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SettingsView({ active, onBack, onLogout, profileName }) {
+  const ACCENT = '#a78bfa';
+  const [hqWifi, setHqWifi] = useState(true);
+  const [hqCellular, setHqCellular] = useState(false);
+  const [push, setPush] = useState(true);
+  const Toggle = ({ on, onClick }) => (
+    <button onClick={onClick} style={{ width: 46, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
+      background: on ? ACCENT : 'rgba(255,255,255,0.12)', position: 'relative', transition: 'background 0.3s cubic-bezier(0.4,0,0.2,1)', flexShrink: 0 }}>
+      <span style={{ position: 'absolute', top: 3, left: 3, width: 22, height: 22, borderRadius: '50%', background: '#fff',
+        transform: on ? 'translateX(18px)' : 'translateX(0)',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+        transition: 'transform 0.32s cubic-bezier(0.34,1.56,0.64,1)' }} />
+    </button>
+  );
+  const Row = ({ label, desc, right }) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '15px 24px' }}>
+      <div>
+        <div style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 14, color: 'rgba(255,255,255,0.85)' }}>{label}</div>
+        {desc && <div style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>{desc}</div>}
+      </div>
+      {right}
+    </div>
+  );
+  const sectionLabel = (t) => (
+    <div style={{ padding: '16px 24px 4px', fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: 2, color: 'rgba(255,255,255,0.25)' }}>{t}</div>
+  );
+  const Segment = ({ value, options, onChange }) => (
+    <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 4, gap: 4 }}>
+      {options.map(o => (
+        <button key={o.v} onClick={() => onChange(o.v)} style={{ flex: 1, border: 'none', cursor: 'pointer', borderRadius: 9, padding: '9px 0',
+          background: value === o.v ? ACCENT : 'transparent', color: value === o.v ? '#15121f' : 'rgba(255,255,255,0.6)',
+          fontFamily: "'Noto Sans KR', sans-serif", fontSize: 13, fontWeight: value === o.v ? 600 : 400, transition: 'background 0.18s' }}>{o.label}</button>
+      ))}
+    </div>
+  );
+  return (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 3, background: 'linear-gradient(160deg, #17141f 0%, #0f0d16 100%)',
+      transform: active ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 0.36s cubic-bezier(0.4,0,0.2,1)',
+      display: 'flex', flexDirection: 'column', pointerEvents: active ? 'auto' : 'none' }}>
+      <SubHeader title="설정" onBack={onBack} />
+      <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none' }}>
+        {sectionLabel('계정')}
+        <Row label={profileName} desc="Spotify로 연결됨" right={null} />
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '6px 24px' }} />
+        {sectionLabel('재생')}
+        <Row label="Wi-Fi 고음질" desc="Wi-Fi에서 최고 음질로 재생" right={<Toggle on={hqWifi} onClick={() => setHqWifi(!hqWifi)} />} />
+        <Row label="모바일 데이터 고음질" desc="모바일 데이터에서 최고 음질로 재생" right={<Toggle on={hqCellular} onClick={() => setHqCellular(!hqCellular)} />} />
+        <Row label="푸시 알림" desc="새 발매·응원법 소식 받기" right={<Toggle on={push} onClick={() => setPush(!push)} />} />
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '6px 24px' }} />
+        <div style={{ padding: '22px 24px 28px' }}>
+          <button onClick={onLogout} style={{ width: '100%', height: 50, borderRadius: 25, cursor: 'pointer',
+            background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', color: '#fb7185',
+            fontFamily: "'Noto Sans KR', sans-serif", fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="#fb7185" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            로그아웃
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SeeAllView({ config, onClose, onPlay, onAddQueue }) {
+  const active = !!config;
+  return (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 40, pointerEvents: active ? 'auto' : 'none',
+      background: '#0a0a0f',
+      transform: active ? 'translateX(0)' : 'translateX(100%)',
+      transition: 'transform 0.4s cubic-bezier(0.4,0,0.2,1)',
+      display: 'flex', flexDirection: 'column' }}>
+      <SubHeader title={(config && config.title) || ''} onBack={onClose} />
+      <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none', padding: '8px 0 40px' }}>
+        {config && config.kind === 'artists' ? (
+          <div>
+            {(config.items || []).map((a, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 20px' }}>
+                <div style={{ width: 54, height: 54, borderRadius: '50%',
+                  background: `radial-gradient(circle at 40% 35%, ${a.color}88, ${a.color}22)`,
+                  border: `1.5px solid ${a.color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: "'Noto Serif KR', serif", fontSize: 20, fontWeight: 900, color: '#fff', flexShrink: 0 }}>{a.name.charAt(0)}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 14, fontWeight: 500, color: '#fff' }}>{a.name}</div>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{a.songs}곡</div>
+                </div>
+                <ChevronRight color="rgba(255,255,255,0.25)" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div>
+            {(config && config.items || []).map(({ song, idx }, i) => (
+              <SongRow key={i} song={song} index={idx}
+                onPlay={() => { onPlay(idx); onClose(); }}
+                onSwipeAdd={() => onAddQueue(idx)} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NotifsView({ active, notifs, onMarkRead, onMarkAll, onBack }) {
+  const ACCENT = '#a78bfa';
+  const hasUnread = notifs.some(n => !n.read);
+  return (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 3, background: 'linear-gradient(160deg, #17141f 0%, #0f0d16 100%)',
+      transform: active ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 0.36s cubic-bezier(0.4,0,0.2,1)',
+      display: 'flex', flexDirection: 'column', pointerEvents: active ? 'auto' : 'none' }}>
+      <SubHeader title="알림" onBack={onBack} right={hasUnread ? (
+        <button onClick={onMarkAll} style={{ background: 'none', border: 'none', cursor: 'pointer', color: ACCENT, fontFamily: "'Noto Sans KR', sans-serif", fontSize: 12, padding: '8px 10px' }}>모두 읽음</button>
+      ) : null} />
+      <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none', padding: '6px 0 30px' }}>
+        {notifs.length === 0 ? (
+          <div style={{ padding: '40px 24px', textAlign: 'center', fontFamily: "'Noto Sans KR', sans-serif", fontSize: 13, fontWeight: 300, color: 'rgba(255,255,255,0.25)' }}>새 알림이 없어요</div>
+        ) : notifs.map((n, i) => (
+          <button key={n.id} onClick={() => onMarkRead(n.id)} style={{ width: '100%', textAlign: 'left',
+            background: n.read ? 'transparent' : 'rgba(167,139,250,0.05)', border: 'none',
+            borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 22px' }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: n.read ? 'transparent' : ACCENT, marginTop: 5 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 13, fontWeight: n.read ? 300 : 400, color: n.read ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>{n.text}</div>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 3, letterSpacing: 0.5 }}>{n.time}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ProfilePanel({ visible, onClose, onNotifsChange }) {
   const [notifs, setNotifs] = useState(MOCK_NOTIFS);
   const swipeRef = useRef(null);
   const ACCENT = '#a78bfa';
   const hasUnread = notifs.some(n => !n.read);
+
+  const [subView, setSubView] = useState(null);
+  const [profile, setProfile] = useState(() => ({
+    name: localStorage.getItem('profile_name') || USER_NAME,
+    photo: localStorage.getItem('profile_photo') || null,
+    colorIdx: parseInt(localStorage.getItem('profile_colorIdx') || '0', 10) || 0,
+  }));
+  useEffect(() => { if (!visible) setSubView(null); }, [visible]);
+  const saveProfile = (p) => {
+    setProfile(p);
+    localStorage.setItem('profile_name', p.name);
+    if (p.photo) localStorage.setItem('profile_photo', p.photo);
+    localStorage.setItem('profile_colorIdx', String(p.colorIdx));
+  };
+  const markAll = () => {
+    const next = notifs.map(n => ({ ...n, read: true }));
+    setNotifs(next);
+    if (onNotifsChange) onNotifsChange(next);
+  };
+  const logout = () => {
+    localStorage.removeItem('login_provider');
+    window.location.href = 'Login.html';
+  };
+  const renderAvatar = (size, fontSize) => {
+    const pal = AVATAR_PALETTE[profile.colorIdx] || AVATAR_PALETTE[0];
+    return (
+      <div style={{
+        width: size, height: size, borderRadius: '50%', flexShrink: 0,
+        background: profile.photo ? `url(${profile.photo}) center/cover no-repeat` : `linear-gradient(135deg, ${pal[0]}, ${pal[1]})`,
+        border: '1.5px solid rgba(167,139,250,0.3)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 4px 16px rgba(124,58,237,0.2)',
+      }}>
+        {!profile.photo && (
+          <span style={{ fontFamily: "'Noto Serif KR', serif", fontSize, fontWeight: 900, color: '#fff' }}>{profile.name.charAt(0).toUpperCase()}</span>
+        )}
+      </div>
+    );
+  };
 
   const markRead = (id) => {
     const next = notifs.map(n => n.id === id ? { ...n, read: true } : n);
@@ -567,34 +851,24 @@ function ProfilePanel({ visible, onClose, onNotifsChange }) {
       >
 
 
+        {/* SUB VIEWS — profile view, settings, notifications */}
+        <ProfileEditView active={subView === 'profile'} profile={profile} onSave={saveProfile} onBack={() => setSubView(null)} />
+        <SettingsView active={subView === 'settings'} onBack={() => setSubView(null)} onLogout={logout} profileName={profile.name} />
+        <NotifsView active={subView === 'notifs'} notifs={notifs} onMarkRead={markRead} onMarkAll={markAll} onBack={() => setSubView(null)} />
+
         <div style={{ flex: 1, overflowY: 'scroll', scrollbarWidth: 'none', padding: '8px 0 20px' }}>
 
           {/* ── PROFILE ── */}
           <div style={{ padding: '12px 20px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-              {/* Avatar: pfp 이미지 또는 이름 첫 글자 (앱과 동일한 fallback) */}
-              <div style={{
-                width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
-                background: USER_PFP
-                  ? `url(${USER_PFP}) center/cover no-repeat`
-                  : 'linear-gradient(135deg, #4A2FA0, #7C3AED)',
-                border: '1.5px solid rgba(167,139,250,0.3)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 16px rgba(124,58,237,0.2)',
-              }}>
-                {!USER_PFP && (
-                  <span style={{
-                    fontFamily: "'Noto Serif KR', serif",
-                    fontSize: 20, fontWeight: 900, color: '#fff',
-                  }}>{USER_NAME.charAt(0).toUpperCase()}</span>
-                )}
-              </div>
+              {/* Avatar: 편집 가능한 프로필 사진/아바타 */}
+              {renderAvatar(52, 20)}
               {/* Info */}
               <div style={{ flex: 1, paddingTop: 2 }}>
                 <div style={{
                   fontFamily: "'Noto Sans KR', sans-serif",
                   fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: -0.2,
-                }}>{USER_NAME}</div>
+                }}>{profile.name}</div>
                 <div style={{
                   fontFamily: "'DM Mono', monospace",
                   fontSize: 11, color: 'rgba(255,255,255,0.3)',
@@ -602,7 +876,7 @@ function ProfilePanel({ visible, onClose, onNotifsChange }) {
                 }}>{USER_HANDLE}</div>
               </div>
             </div>
-            <button style={{
+            <button onClick={() => setSubView('profile')} style={{
               marginTop: 14,
               background: 'none', border: 'none', cursor: 'pointer',
               fontFamily: "'Noto Sans KR', sans-serif",
@@ -621,7 +895,7 @@ function ProfilePanel({ visible, onClose, onNotifsChange }) {
           <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 20px' }} />
 
           {/* ── SETTINGS ── */}
-          <button style={{
+          <button onClick={() => setSubView('settings')} style={{
             width: '100%', background: 'none', border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 14,
             padding: '16px 20px',
@@ -669,7 +943,7 @@ function ProfilePanel({ visible, onClose, onNotifsChange }) {
                   color: 'rgba(255,255,255,0.3)',
                 }}>알림</span>
               </div>
-              <button style={{
+              <button onClick={() => setSubView('notifs')} style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 fontFamily: "'DM Mono', monospace",
                 fontSize: 9, letterSpacing: 1,
@@ -748,6 +1022,7 @@ const NAV_ITEMS = [
 function HomePage() {
   const [mounted, setMounted] = useState(false);
   const [activeNav, setActiveNav] = useState('home');
+  const [seeAll, setSeeAll] = useState(null);
   const [currentSongIdx, setCurrentSongIdx] = useState(() => {
     const saved = localStorage.getItem('player_songIdx');
     return saved !== null ? parseInt(saved) : 0;
@@ -1016,7 +1291,7 @@ function HomePage() {
         </div>
 
         {/* FEATURED — horizontal scroll */}
-        <SectionHeader title="추천 트랙" sub />
+        <SectionHeader title="추천 트랙" sub onSeeAll={() => setSeeAll({ title: '추천 트랙', kind: 'songs', items: SONGS.map((s, i) => ({ song: s, idx: i })) })} />
         <HScrollRow gap={14} padH={20}>
           {SONGS.slice(0, 4).map((s, i) => (
             <FeaturedCard key={i} song={s} onPlay={() => playSong(i)} />
@@ -1048,7 +1323,7 @@ function HomePage() {
 
         {/* RECENTLY PLAYED */}
         <div style={{ marginTop: 28 }}>
-          <SectionHeader title="최근 재생" sub />
+          <SectionHeader title="최근 재생" sub onSeeAll={() => setSeeAll({ title: '최근 재생', kind: 'songs', items: SONGS.map((s, i) => ({ song: s, idx: i })) })} />
           <div>
             {SONGS.slice(0, 5).map((s, i) => (
               <SongRow key={i} song={s} index={i}
@@ -1060,7 +1335,7 @@ function HomePage() {
 
         {/* ARTISTS */}
         <div style={{ marginTop: 28 }}>
-          <SectionHeader title="좋아하는 아티스트" sub />
+          <SectionHeader title="좋아하는 아티스트" sub onSeeAll={() => setSeeAll({ title: '좋아하는 아티스트', kind: 'artists', items: ARTISTS })} />
           <HScrollRow gap={20} padH={20}>
             {ARTISTS.map((a, i) => <ArtistCard key={i} artist={a} />)}
           </HScrollRow>
@@ -1068,7 +1343,7 @@ function HomePage() {
 
         {/* RECOMMENDED */}
         <div style={{ margin: '28px 0 12px' }}>
-          <SectionHeader title="당신을 위한 추천" sub />
+          <SectionHeader title="당신을 위한 추천" sub onSeeAll={() => setSeeAll({ title: '당신을 위한 추천', kind: 'songs', items: SONGS.map((s, i) => ({ song: s, idx: i })).reverse() })} />
           <HScrollRow gap={14} padH={20}>
             {[...SONGS].reverse().map((s, i) => (
               <CompactCard key={i} song={s}
@@ -1083,6 +1358,9 @@ function HomePage() {
 
       {/* PROFILE PANEL */}
       <ProfilePanel visible={panelOpen} onClose={() => setPanelOpen(false)} onNotifsChange={ns => setHasUnread(ns.some(n => !n.read))} />
+
+      {/* SEE ALL */}
+      <SeeAllView config={seeAll} onClose={() => setSeeAll(null)} onPlay={(i) => playSong(i)} onAddQueue={(i) => addToQueue(i)} />
 
       {/* PLAYER OVERLAY — slides up over Home */}
       {playerOverlay !== 'hidden' && (

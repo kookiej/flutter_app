@@ -248,6 +248,54 @@ class AppIcons {
     width: 14, height: 14,
   );
 
+  static Widget pencil({Color? color}) => SvgPicture.string(
+    '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    '<path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z" stroke="${_hex(color ?? const Color(0xFFA78BFA))}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
+    '</svg>',
+    width: 19, height: 19,
+  );
+
+  static Widget camera({Color? color}) => SvgPicture.string(
+    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    '<path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="${_hex(color ?? Colors.white)}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+    '<circle cx="12" cy="13" r="4" stroke="${_hex(color ?? Colors.white)}" stroke-width="2"/>'
+    '</svg>',
+    width: 15, height: 15,
+  );
+
+  static Widget logout({Color? color}) => SvgPicture.string(
+    '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    '<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="${_hex(color ?? Colors.white)}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
+    '</svg>',
+    width: 17, height: 17,
+  );
+
+  // 더보기 메뉴 — 아티스트 채널
+  static Widget artistChannel({Color? color}) => SvgPicture.string(
+    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    '<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" stroke="${_hex(color ?? Colors.white)}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
+    '</svg>',
+    width: 20, height: 20,
+  );
+
+  // 더보기 메뉴 — 앨범(비닐)
+  static Widget albumDisc({Color? color}) => SvgPicture.string(
+    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    '<circle cx="12" cy="12" r="9" stroke="${_hex(color ?? Colors.white)}" stroke-width="1.8"/>'
+    '<circle cx="12" cy="12" r="2.5" stroke="${_hex(color ?? Colors.white)}" stroke-width="1.8"/>'
+    '</svg>',
+    width: 20, height: 20,
+  );
+
+  // 더보기 메뉴 — 응원법 영상
+  static Widget fanchantVideo({Color? color}) => SvgPicture.string(
+    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    '<rect x="3" y="5" width="18" height="14" rx="3" stroke="${_hex(color ?? Colors.white)}" stroke-width="1.8"/>'
+    '<path d="M10 9l5 3-5 3V9z" fill="${_hex(color ?? Colors.white)}"/>'
+    '</svg>',
+    width: 20, height: 20,
+  );
+
   static String _hex(Color c) {
     return '#${c.value.toRadixString(16).padLeft(8, '0').substring(2)}';
   }
