@@ -1,35 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/song.dart';
 import '../../shared/icons/app_icons.dart';
+import '../../shared/widgets/mini_cover.dart';
 
 /// 플레이어 더보기(⋮) 바텀시트. html/Player.html 의 MORE MENU 재현.
-/// 옵션 선택 시 표시할 토스트 문구를 Navigator.pop 으로 반환한다.
+/// 옵션 선택 시 시트만 닫는다(피드백 토스트 없음).
 class MoreMenuSheet extends StatelessWidget {
   final Song song;
-  const MoreMenuSheet({super.key, required this.song});
+  final String? fanchantVideoUrl;
+  const MoreMenuSheet({super.key, required this.song, this.fanchantVideoUrl});
 
   @override
   Widget build(BuildContext context) {
+    final hasFanchantVideo =
+        fanchantVideoUrl != null && fanchantVideoUrl!.isNotEmpty;
     final options = <_MoreOption>[
       _MoreOption(
         icon: AppIcons.artistChannel(),
         label: '아티스트 채널 가기',
         sub: song.artist,
-        toast: '${song.artist} 채널로 이동',
       ),
       _MoreOption(
         icon: AppIcons.albumDisc(),
         label: '앨범 보러 가기',
         sub: "${song.artist} '${song.title}' 앨범",
-        toast: "앨범 '${song.album}' 열기",
       ),
-      _MoreOption(
-        icon: AppIcons.fanchantVideo(),
-        label: '응원법 영상 보러 가기',
-        sub: "${song.artist} '${song.title}' 응원법",
-        toast: '응원법 영상 재생',
-      ),
+      // 응원법 영상 URL이 있는 곡에서만 노출 → 탭 시 외부 브라우저/앱으로 열기
+      if (hasFanchantVideo)
+        _MoreOption(
+          icon: AppIcons.fanchantVideo(),
+          label: '응원법 영상 보러 가기',
+          sub: "${song.artist} '${song.title}' 응원법",
+          onTap: () => launchUrl(
+            Uri.parse(fanchantVideoUrl!),
+            mode: LaunchMode.externalApplication,
+          ),
+        ),
     ];
 
     return Container(
@@ -60,21 +68,7 @@ class MoreMenuSheet extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(22, 12, 22, 12),
               child: Row(
                 children: [
-                  Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft, end: Alignment.bottomRight,
-                        colors: [song.colors[1], song.colors[2]],
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      song.artist.isNotEmpty ? song.artist.characters.first : '?',
-                      style: AppTextStyles.songTitleMid.copyWith(fontSize: 18, fontWeight: FontWeight.w900),
-                    ),
-                  ),
+                  MiniCover(song: song, size: 44, radius: 10),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -98,10 +92,13 @@ class MoreMenuSheet extends StatelessWidget {
               margin: const EdgeInsets.fromLTRB(22, 4, 22, 6),
               color: Colors.white.withOpacity(0.06),
             ),
-            // 옵션
+            // 옵션 — 모두 시트를 닫고, 액션이 있으면(응원법 영상) 추가 실행
             ...options.map((o) => _OptionRow(
               option: o,
-              onTap: () => Navigator.of(context).pop(o.toast),
+              onTap: () {
+                Navigator.of(context).pop();
+                o.onTap?.call();
+              },
             )),
             const SizedBox(height: 14),
           ],
@@ -115,8 +112,8 @@ class _MoreOption {
   final Widget icon;
   final String label;
   final String sub;
-  final String toast;
-  const _MoreOption({required this.icon, required this.label, required this.sub, required this.toast});
+  final VoidCallback? onTap; // 시트 닫은 뒤 실행할 추가 액션 (없으면 닫기만)
+  const _MoreOption({required this.icon, required this.label, required this.sub, this.onTap});
 }
 
 class _OptionRow extends StatelessWidget {

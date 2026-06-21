@@ -155,7 +155,12 @@ class _PanelContentState extends State<_PanelContent> {
                 final handle = user != null ? '@${user.spotifyUserId}' : '@musicfan_kr';
                 final initial = name.isNotEmpty ? name.characters.first.toUpperCase() : 'M';
                 final photo = userProv.localPhotoBytes;
+                final pfpUrl = userProv.pfpUrl;
                 final pal = kAvatarPalette[userProv.colorIdx % kAvatarPalette.length];
+                // 아바타: 로컬 미리보기 → pfp_url → 그라디언트+이니셜
+                final ImageProvider? avatarImage = photo != null
+                    ? MemoryImage(photo)
+                    : (pfpUrl != null ? NetworkImage(pfpUrl) as ImageProvider : null);
                 return GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () => _open(_SubView.profile),
@@ -165,15 +170,15 @@ class _PanelContentState extends State<_PanelContent> {
                         width: 52, height: 52,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: photo == null
+                          gradient: avatarImage == null
                               ? LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: pal)
                               : null,
-                          image: photo != null
-                              ? DecorationImage(image: MemoryImage(photo), fit: BoxFit.cover)
+                          image: avatarImage != null
+                              ? DecorationImage(image: avatarImage, fit: BoxFit.cover)
                               : null,
                         ),
                         alignment: Alignment.center,
-                        child: photo == null
+                        child: avatarImage == null
                             ? Text(initial, style: AppTextStyles.sectionTitle)
                             : null,
                       ),

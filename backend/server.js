@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const { pool, ensureSchema } = require('./db');
+const { uploadPfp, deletePfp } = require('./s3');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -14,7 +15,7 @@ const WEB_DIR = path.join(__dirname, '..', 'build', 'web');
 const JWT_SECRET = process.env.JWT_SECRET;
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 
-app.use(express.json());
+app.use(express.json({ limit: '5mb' })); // base64 프로필 이미지 수용
 
 function origin(req) {
   return `${req.protocol}://${req.get('host')}`;
@@ -39,6 +40,7 @@ function rowToUser(row) {
     id: row.id,
     spotifyUserId: row.spotify_user_id,
     displayName: row.display_name,
+    profileColor: row.profile_color ?? 0,
     pfpUrl: row.pfp_url,
     isPremium: !!row.is_premium,
   };
@@ -93,7 +95,7 @@ app.post('/api/auth/spotify', async (req, res) => {
       );
 
       const [[user]] = await conn.query(
-        'SELECT id, spotify_user_id, display_name, pfp_url FROM users WHERE spotify_user_id = ?',
+        'SELECT id, spotify_user_id, display_name, profile_color, pfp_url FROM users WHERE spotify_user_id = ?',
         [me.id]
       );
 
@@ -136,7 +138,7 @@ app.post('/api/auth/spotify', async (req, res) => {
 app.get('/api/me', requireAuth, async (req, res) => {
   try {
     const [[row]] = await pool.query(
-      `SELECT u.id, u.spotify_user_id, u.display_name, u.pfp_url,
+      `SELECT u.id, u.spotify_user_id, u.display_name, u.profile_color, u.pfp_url,
               t.is_premium,
               (t.user_id IS NOT NULL) AS spotify_connected
        FROM users u
@@ -152,6 +154,73 @@ app.get('/api/me', requireAuth, async (req, res) => {
   } catch (e) {
     console.error('[me] error:', e.message);
     res.status(500).json({ error: 'internal' });
+  }
+});
+
+// ─── 프로필 수정: 닉네임 + 아바타 색상 ───────────────────────────────────────
+app.put('/api/me/profile', requireAuth, async (req, res) => {
+  let { displayName, profileColor } = req.body || {};
+
+  // 닉네임: 문자열만, 길이 제한(스키마 VARCHAR(100)). 빈 문자열은 null 처리.
+  if (displayName != null && typeof displayName !== 'string') {
+    return res.status(400).json({ error: 'invalid_display_name' });
+  }
+  if (typeof displayName === 'string') {
+    displayName = displayName.trim().slice(0, 100);
+    if (displayName.length === 0) displayName = null;
+  }
+  // 색상: 정수 인덱스, 음수 방지(상한은 클라이언트 팔레트 modulo에 위임)
+  const color = Number.isInteger(profileColor) ? Math.max(0, profileColor) : 0;
+
+  try {
+    await pool.query(
+      'UPDATE users SET display_name = ?, profile_color = ? WHERE id = ?',
+      [displayName ?? null, color, req.userId]
+    );
+    const [[row]] = await pool.query(
+      `SELECT u.id, u.spotify_user_id, u.display_name, u.profile_color, u.pfp_url,
+              t.is_premium
+         FROM users u
+         LEFT JOIN user_spotify_tokens t ON t.user_id = u.id
+        WHERE u.id = ?`,
+      [req.userId]
+    );
+    if (!row) return res.status(404).json({ error: 'not_found' });
+    res.json({ user: rowToUser(row) });
+  } catch (e) {
+    console.error('[me/profile] error:', e.message);
+    res.status(500).json({ error: 'internal' });
+  }
+});
+
+// ─── 프로필 사진 업로드 (S3 저장, DB엔 URL만) ────────────────────────────────
+app.post('/api/me/pfp', requireAuth, async (req, res) => {
+  const { imageBase64, contentType } = req.body || {};
+  if (typeof imageBase64 !== 'string' || imageBase64.length === 0) {
+    return res.status(400).json({ error: 'missing_image' });
+  }
+  try {
+    // data URL 접두사가 붙어 와도 안전하게 제거
+    const base64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
+    const buffer = Buffer.from(base64, 'base64');
+    const pfpUrl = await uploadPfp(req.userId, buffer, contentType || 'image/jpeg');
+    await pool.query('UPDATE users SET pfp_url = ? WHERE id = ?', [pfpUrl, req.userId]);
+    res.json({ pfpUrl });
+  } catch (e) {
+    console.error('[me/pfp upload] error:', e.message);
+    res.status(502).json({ error: 'upload_failed' });
+  }
+});
+
+// ─── 프로필 사진 삭제 ────────────────────────────────────────────────────────
+app.delete('/api/me/pfp', requireAuth, async (req, res) => {
+  try {
+    await deletePfp(req.userId);
+    await pool.query('UPDATE users SET pfp_url = NULL WHERE id = ?', [req.userId]);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[me/pfp delete] error:', e.message);
+    res.status(502).json({ error: 'delete_failed' });
   }
 });
 
@@ -323,7 +392,7 @@ app.get('/login/naver/oauth', async (req, res) => {
 app.get('/api/tracks/:id/sync', async (req, res) => {
   try {
     const [[row]] = await pool.query(
-      `SELECT t.has_synced_lyrics, t.has_fanchant, s.sync_data
+      `SELECT t.has_synced_lyrics, t.has_fanchant, t.fanchant_video_url, s.sync_data
          FROM tracks t
          LEFT JOIN track_sync_data s ON s.spotify_track_id = t.spotify_track_id
         WHERE t.spotify_track_id = ?`,
@@ -333,6 +402,7 @@ app.get('/api/tracks/:id/sync', async (req, res) => {
     res.json({
       hasSyncedLyrics: !!row.has_synced_lyrics,
       hasFanchant: !!row.has_fanchant,
+      fanchantVideoUrl: row.fanchant_video_url ?? null,
       // mysql2 의 JSON 컬럼은 객체로 파싱되어 오지만, 드라이버/설정에 따라 문자열일 수 있어 정규화
       syncData:
         typeof row.sync_data === 'string'

@@ -21,7 +21,8 @@ class ProfileEditView extends StatefulWidget {
 class _ProfileEditViewState extends State<ProfileEditView> {
   bool _editing = false;
   late String _name;
-  Uint8List? _photo;
+  Uint8List? _photo; // 미리보기용 (새로 고른 사진 또는 세션 내 업로드본)
+  bool _photoChanged = false; // 이번 편집에서 사진을 변경/삭제했는지
   late int _colorIdx;
 
   @override
@@ -34,6 +35,7 @@ class _ProfileEditViewState extends State<ProfileEditView> {
     final u = context.read<UserProvider>();
     _name = u.effectiveName;
     _photo = u.localPhotoBytes;
+    _photoChanged = false;
     _colorIdx = u.colorIdx;
   }
 
@@ -49,19 +51,42 @@ class _ProfileEditViewState extends State<ProfileEditView> {
     }
   }
 
-  Future<void> _pickPhoto() async {
+  Future<void> _pickPhoto(ImageSource source) async {
     final picker = ImagePicker();
-    final x = await picker.pickImage(source: ImageSource.gallery, maxWidth: 512, imageQuality: 85);
+    final x = await picker.pickImage(source: source, maxWidth: 512, imageQuality: 85);
     if (x == null) return;
     final bytes = await x.readAsBytes();
-    if (mounted) setState(() => _photo = bytes);
+    if (mounted) setState(() { _photo = bytes; _photoChanged = true; });
+  }
+
+  /// 사진 수정 옵션: 선택하기 / 촬영하기 / 삭제하기 / 취소
+  Future<void> _showPhotoOptions() async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _PhotoOptionsSheet(),
+    );
+    if (!mounted) return;
+    switch (action) {
+      case 'gallery':
+        await _pickPhoto(ImageSource.gallery);
+        break;
+      case 'camera':
+        await _pickPhoto(ImageSource.camera);
+        break;
+      case 'delete':
+        setState(() { _photo = null; _photoChanged = true; });
+        break;
+    }
   }
 
   void _save() {
+    final prov = context.read<UserProvider>();
     final name = _name.trim();
-    context.read<UserProvider>().saveLocalProfile(
-      name: name.isEmpty ? context.read<UserProvider>().effectiveName : name,
-      photoBytes: _photo,
+    prov.saveProfile(
+      name: name.isEmpty ? prov.effectiveName : name,
+      photoBytes: _photoChanged ? _photo : null,
+      photoDeleted: _photoChanged && _photo == null,
       colorIdx: _colorIdx,
     );
     setState(() => _editing = false);
@@ -71,6 +96,15 @@ class _ProfileEditViewState extends State<ProfileEditView> {
   Widget build(BuildContext context) {
     final pal = kAvatarPalette[_colorIdx % kAvatarPalette.length];
     final initial = _name.isNotEmpty ? _name.characters.first.toUpperCase() : '?';
+
+    // 아바타 이미지 우선순위: 미리보기 사진 → (삭제 안 했으면) pfp_url → 그라디언트
+    final pfpUrl = context.watch<UserProvider>().pfpUrl;
+    ImageProvider? avatarImage;
+    if (_photo != null) {
+      avatarImage = MemoryImage(_photo!);
+    } else if (!_photoChanged && pfpUrl != null) {
+      avatarImage = NetworkImage(pfpUrl);
+    }
 
     return Column(
       children: [
@@ -103,13 +137,13 @@ class _ProfileEditViewState extends State<ProfileEditView> {
                           width: 104, height: 104,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            gradient: _photo == null
+                            gradient: avatarImage == null
                                 ? LinearGradient(
                                     begin: Alignment.topLeft, end: Alignment.bottomRight,
                                     colors: pal)
                                 : null,
-                            image: _photo != null
-                                ? DecorationImage(image: MemoryImage(_photo!), fit: BoxFit.cover)
+                            image: avatarImage != null
+                                ? DecorationImage(image: avatarImage, fit: BoxFit.cover)
                                 : null,
                             border: Border.all(color: AppColors.accent.withOpacity(0.35), width: 2),
                             boxShadow: [
@@ -117,7 +151,7 @@ class _ProfileEditViewState extends State<ProfileEditView> {
                             ],
                           ),
                           alignment: Alignment.center,
-                          child: _photo == null
+                          child: avatarImage == null
                               ? Text(initial, style: AppTextStyles.songTitleLarge.copyWith(fontSize: 40))
                               : null,
                         ),
@@ -125,7 +159,7 @@ class _ProfileEditViewState extends State<ProfileEditView> {
                           Positioned(
                             right: -2, bottom: -2,
                             child: GestureDetector(
-                              onTap: _pickPhoto,
+                              onTap: _showPhotoOptions,
                               child: Container(
                                 width: 34, height: 34,
                                 decoration: BoxDecoration(
@@ -133,21 +167,13 @@ class _ProfileEditViewState extends State<ProfileEditView> {
                                   color: AppColors.accent,
                                   border: Border.all(color: const Color(0xFF15121F), width: 3),
                                 ),
-                                child: Center(child: AppIcons.camera(color: const Color(0xFF15121F))),
+                                // 아이콘 윤곽선·벡터 패스는 투명 (액센트 원형 버튼만 노출)
+                                child: Center(child: AppIcons.camera(color: Colors.transparent)),
                               ),
                             ),
                           ),
                       ],
                     ),
-                    if (_editing && _photo != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 10),
-                        child: GestureDetector(
-                          onTap: () => setState(() => _photo = null),
-                          child: Text('사진 제거',
-                            style: AppTextStyles.caption.copyWith(fontSize: 11, color: Colors.white.withOpacity(0.4))),
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -245,6 +271,75 @@ class _ProfileEditViewState extends State<ProfileEditView> {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// 프로필 사진 수정 옵션 바텀시트 — 선택/촬영/삭제/취소.
+/// 선택 결과는 Navigator.pop 으로 'gallery'|'camera'|'delete'|null 반환.
+class _PhotoOptionsSheet extends StatelessWidget {
+  const _PhotoOptionsSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter, end: Alignment.bottomCenter,
+          colors: [Color(0xFF1B1726), Color(0xFF14111D)],
+        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        border: Border(top: BorderSide(color: Color(0x14FFFFFF))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 38, height: 4,
+              margin: const EdgeInsets.only(top: 10, bottom: 6),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(2),
+                color: Colors.white.withOpacity(0.18),
+              ),
+            ),
+            _row(context, icon: AppIcons.camera(color: Colors.white),
+                label: '사진 선택하기', value: 'gallery'),
+            _row(context, icon: AppIcons.camera(color: Colors.white),
+                label: '사진 촬영하기', value: 'camera'),
+            _row(context, icon: AppIcons.camera(color: const Color(0xFFFB7185)),
+                label: '사진 삭제하기', value: 'delete', danger: true),
+            Container(
+              height: 1,
+              margin: const EdgeInsets.fromLTRB(22, 4, 22, 4),
+              color: Colors.white.withOpacity(0.06),
+            ),
+            _row(context, icon: const SizedBox(width: 20, height: 20),
+                label: '취소', value: null),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _row(BuildContext context,
+      {required Widget icon, required String label, required String? value, bool danger = false}) {
+    final color = danger ? const Color(0xFFFB7185) : Colors.white.withOpacity(0.9);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.of(context).pop(value),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+        child: Row(
+          children: [
+            SizedBox(width: 22, height: 22, child: Center(child: icon)),
+            const SizedBox(width: 14),
+            Text(label, style: AppTextStyles.body.copyWith(color: color)),
+          ],
+        ),
+      ),
     );
   }
 }

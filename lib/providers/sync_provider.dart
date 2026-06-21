@@ -15,6 +15,7 @@ class SyncProvider extends ChangeNotifier {
   TrackSync? get data => _data;
   bool get hasFanchant => _data?.hasFanchant ?? false;
   bool get hasLyrics => _data?.hasLyrics ?? false;
+  String? get fanchantVideoUrl => _data?.fanchantVideoUrl;
 
   /// 둘 다 없으면(또는 DB 미적재) 가사 영역 비표시.
   bool get showLyrics => _data != null && (_data!.hasLyrics || _data!.hasFanchant);

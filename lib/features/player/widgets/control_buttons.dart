@@ -22,7 +22,7 @@ class ControlButtons extends StatelessWidget {
               _IconBtn(
                 child: Opacity(
                   opacity: player.shuffle ? 1.0 : 0.5,
-                  child: AppIcons.shuffle(color: player.shuffle ? song.accent : Colors.white),
+                  child: AppIcons.shuffle(color: Colors.white),
                 ),
                 onTap: () => player.toggleShuffle(),
               ),
@@ -139,10 +139,10 @@ class _RepeatBtnState extends State<_RepeatBtn> {
             children: [
               Opacity(
                 opacity: active ? 1.0 : 0.5,
-                child: AppIcons.repeat(color: active ? widget.song.accent : Colors.white),
+                child: AppIcons.repeat(color: Colors.white),
               ),
               if (widget.player.repeat == 2)
-                Text('1', style: TextStyle(fontSize: 9, color: widget.song.accent, fontWeight: FontWeight.bold)),
+                Text('1', style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
             ],
           ),
         ),

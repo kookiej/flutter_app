@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../data/mock/songs.dart';
 import '../data/models/song.dart';
 import '../data/repositories/player_storage.dart';
 
@@ -13,10 +12,12 @@ class SearchProvider extends ChangeNotifier {
   List<String> get recentSearches => List.unmodifiable(_recentSearches);
   String get activeTab => _activeTab;
 
-  List<Song> get results {
-    if (_query.isEmpty) return [];
+  /// 현재 쿼리로 [songs]를 필터링. 검색 페이지가 보강된 CatalogProvider.songs를
+  /// 넘겨주면 실제 앨범 커버가 포함된 결과가 나온다. 빈 쿼리면 빈 리스트.
+  List<Song> filter(List<Song> songs) {
+    if (_query.isEmpty) return const [];
     final q = _query.toLowerCase();
-    return kSongs.where((s) =>
+    return songs.where((s) =>
       s.title.toLowerCase().contains(q) ||
       s.artist.toLowerCase().contains(q) ||
       s.album.toLowerCase().contains(q) ||

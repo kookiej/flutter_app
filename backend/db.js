@@ -23,6 +23,8 @@ async function ensureSchema() {
                                     COMMENT 'GET /me 응답의 id. 유일한 신뢰 가능 식별자',
       display_name     VARCHAR(100) NULL
                                     COMMENT 'GET /me 응답의 display_name (null 가능). 유저가 서비스 내에서 수정 가능',
+      profile_color    INT          NOT NULL DEFAULT 0
+                                    COMMENT '프로필 아바타 색상 인덱스(kAvatarPalette)',
       pfp_url          VARCHAR(512) NULL
                                     COMMENT 'GET /me 응답의 images[0].url (profile picture)',
       created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -75,6 +77,8 @@ async function ensureSchema() {
                                       COMMENT '동기화 가사 보유 여부',
       has_fanchant       TINYINT(1)   NOT NULL DEFAULT 0
                                       COMMENT '응원법 보유 여부 (필터링용)',
+      fanchant_video_url VARCHAR(512) NULL
+                                      COMMENT '응원법 영상 URL',
       created_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
                                       ON UPDATE CURRENT_TIMESTAMP,
@@ -111,6 +115,42 @@ async function ensureSchema() {
       COLLATE=utf8mb4_unicode_ci
       COMMENT='동기화된 콘텐츠'
   `);
+
+  // 기존 DB 마이그레이션: users.profile_color 컬럼이 없으면 display_name 뒤에 추가.
+  // ADD COLUMN ... DEFAULT 0 이 기존 행을 채우지만, 명시적으로도 0으로 업데이트.
+  const [cols] = await pool.query(
+    `SELECT COUNT(*) AS c
+       FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'users'
+        AND COLUMN_NAME = 'profile_color'`
+  );
+  if (cols[0].c === 0) {
+    await pool.query(
+      `ALTER TABLE users
+         ADD COLUMN profile_color INT NOT NULL DEFAULT 0
+           COMMENT '프로필 아바타 색상 인덱스(kAvatarPalette)'
+           AFTER display_name`
+    );
+    await pool.query(`UPDATE users SET profile_color = 0 WHERE profile_color IS NULL`);
+  }
+
+  // 기존 DB 마이그레이션: tracks.fanchant_video_url 컬럼이 없으면 추가 (멱등).
+  const [tcols] = await pool.query(
+    `SELECT COUNT(*) AS c
+       FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'tracks'
+        AND COLUMN_NAME = 'fanchant_video_url'`
+  );
+  if (tcols[0].c === 0) {
+    await pool.query(
+      `ALTER TABLE tracks
+         ADD COLUMN fanchant_video_url VARCHAR(512) NULL
+           COMMENT '응원법 영상 URL'
+           AFTER has_fanchant`
+    );
+  }
 }
 
 module.exports = { pool, ensureSchema };

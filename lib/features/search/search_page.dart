@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../providers/catalog_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/search_provider.dart';
@@ -54,6 +55,9 @@ class _SearchPageState extends State<SearchPage> {
               Expanded(
                 child: Consumer<SearchProvider>(
                   builder: (context, search, _) {
+                    // 보강된 카탈로그(앨범 커버 포함) 기준으로 검색 결과를 만든다
+                    final catalog = context.watch<CatalogProvider>();
+                    final results = search.filter(catalog.songs);
                     return CustomScrollView(
                       slivers: [
                         SliverToBoxAdapter(
@@ -175,10 +179,10 @@ class _SearchPageState extends State<SearchPage> {
                           SliverToBoxAdapter(
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-                              child: Text('결과 ${search.results.length}곡', style: AppTextStyles.sectionTitle),
+                              child: Text('결과 ${results.length}곡', style: AppTextStyles.sectionTitle),
                             ),
                           ),
-                          if (search.results.isEmpty)
+                          if (results.isEmpty)
                             SliverToBoxAdapter(
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 60),
@@ -198,7 +202,7 @@ class _SearchPageState extends State<SearchPage> {
                             SliverList(
                               delegate: SliverChildBuilderDelegate(
                                 (_, i) {
-                                  final song = search.results[i];
+                                  final song = results[i];
                                   return SongRow(
                                     song: song,
                                     index: i,
@@ -214,7 +218,7 @@ class _SearchPageState extends State<SearchPage> {
                                     showIndex: false,
                                   );
                                 },
-                                childCount: search.results.length,
+                                childCount: results.length,
                               ),
                             ),
                         ],

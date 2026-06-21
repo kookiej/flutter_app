@@ -160,6 +160,60 @@ class SpotifyAuthService {
     return AppUser.fromJson(data['user'] as Map<String, dynamic>);
   }
 
+  /// 프로필(닉네임·아바타 색상) 서버 반영. 성공 시 갱신된 AppUser 반환, 실패 시 null
+  Future<AppUser?> updateProfile({
+    required String displayName,
+    required int profileColor,
+  }) async {
+    final jwt = await sessionJwt;
+    if (jwt == null) return null;
+
+    final response = await http.put(
+      Uri.parse('$apiBase/api/me/profile'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $jwt',
+      },
+      body: jsonEncode({'displayName': displayName, 'profileColor': profileColor}),
+    );
+    if (response.statusCode != 200) return null;
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return AppUser.fromJson(data['user'] as Map<String, dynamic>);
+  }
+
+  /// 프로필 사진을 백엔드 경유로 S3에 업로드. 성공 시 새 pfp_url 반환, 실패 시 null
+  Future<String?> uploadPfp(Uint8List bytes, {String contentType = 'image/jpeg'}) async {
+    final jwt = await sessionJwt;
+    if (jwt == null) return null;
+
+    final response = await http.post(
+      Uri.parse('$apiBase/api/me/pfp'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $jwt',
+      },
+      body: jsonEncode({
+        'imageBase64': base64Encode(bytes),
+        'contentType': contentType,
+      }),
+    );
+    if (response.statusCode != 200) return null;
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return data['pfpUrl'] as String?;
+  }
+
+  /// 프로필 사진 삭제 (S3 객체 + DB pfp_url 정리). 성공 시 true
+  Future<bool> deletePfp() async {
+    final jwt = await sessionJwt;
+    if (jwt == null) return false;
+
+    final response = await http.delete(
+      Uri.parse('$apiBase/api/me/pfp'),
+      headers: {'Authorization': 'Bearer $jwt'},
+    );
+    return response.statusCode == 200;
+  }
+
   /// Spotify access token. 만료 시 서버가 자동 갱신. 재로그인 필요 시 null
   Future<String?> get accessToken async {
     final jwt = await sessionJwt;

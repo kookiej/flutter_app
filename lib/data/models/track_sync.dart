@@ -56,11 +56,13 @@ class SyncEntry {
 class TrackSync {
   final bool hasLyrics;
   final bool hasFanchant;
+  final String? fanchantVideoUrl;
   final List<SyncEntry> entries;
 
   const TrackSync({
     required this.hasLyrics,
     required this.hasFanchant,
+    this.fanchantVideoUrl,
     required this.entries,
   });
 
@@ -69,6 +71,7 @@ class TrackSync {
     return TrackSync(
       hasLyrics: json['hasSyncedLyrics'] as bool? ?? false,
       hasFanchant: json['hasFanchant'] as bool? ?? false,
+      fanchantVideoUrl: json['fanchantVideoUrl'] as String?,
       entries: data == null
           ? const []
           : data
