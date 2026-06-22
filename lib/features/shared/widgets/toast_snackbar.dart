@@ -49,23 +49,18 @@ class _ToastSnackbarState extends State<ToastSnackbar> with SingleTickerProvider
       position: _slide,
       child: FadeTransition(
         opacity: _opacity,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 12),
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 22),
-          decoration: BoxDecoration(
-            color: const Color(0xF21C1C24),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: ClipRRect(
-            child: BackdropFilter(
-              filter: const ColorFilter.srgbToLinearGamma(),
-              child: Text(
-                widget.message ?? '재생목록에 추가됨 · ${widget.song!.title} — ${widget.song!.artist}',
-                style: AppTextStyles.bodyLight.copyWith(fontSize: 13),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+        child: Padding(
+          // 배경 없이 텍스트만 — 텍스트 크기에 맞춘 최소 여백
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            widget.message ?? '재생목록에 추가됨 · ${widget.song!.title} — ${widget.song!.artist}',
+            style: AppTextStyles.bodyLight.copyWith(
+              fontSize: 13,
+              // 배경이 없으므로 가독성용 미세 그림자
+              shadows: const [Shadow(color: Colors.black54, blurRadius: 6)],
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ),

@@ -134,6 +134,21 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 주어진 곡 인덱스 목록으로 큐를 교체하고 첫 곡부터 재생 (전체 듣기).
+  void playAll(List<int> songIndices) {
+    if (songIndices.isEmpty) return;
+    _queue = List.of(songIndices);
+    _queuePos = 0;
+    _shuffle = false;
+    _preShuffleQueue = null;
+    _currentTime = 0;
+    _isPlaying = true;
+    _startTimer();
+    _playCurrent();
+    _persist();
+    notifyListeners();
+  }
+
   void togglePlay() {
     _isPlaying = !_isPlaying;
     if (_isPlaying) {

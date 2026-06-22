@@ -20,8 +20,10 @@ import 'widgets/progress_bar.dart';
 
 class PlayerPage extends StatefulWidget {
   final VoidCallback onClose;
+  final VoidCallback? onArtistTap;
+  final VoidCallback? onAlbumTap;
 
-  const PlayerPage({super.key, required this.onClose});
+  const PlayerPage({super.key, required this.onClose, this.onArtistTap, this.onAlbumTap});
 
   @override
   State<PlayerPage> createState() => _PlayerPageState();
@@ -31,11 +33,18 @@ class _PlayerPageState extends State<PlayerPage> {
   bool _queueVisible = false;
 
   void _openMoreMenu(Song song, String? fanchantVideoUrl) {
+    // 매칭 앨범이 있을 때만 '앨범 보러 가기' 노출
+    final hasAlbum = context.read<CatalogProvider>().albumFor(song) != null;
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.55),
-      builder: (_) => MoreMenuSheet(song: song, fanchantVideoUrl: fanchantVideoUrl),
+      builder: (_) => MoreMenuSheet(
+        song: song,
+        fanchantVideoUrl: fanchantVideoUrl,
+        onArtist: widget.onArtistTap,
+        onAlbum: hasAlbum ? widget.onAlbumTap : null,
+      ),
     );
   }
 
@@ -140,8 +149,29 @@ class _PlayerPageState extends State<PlayerPage> {
                             children: [
                               Text(song.title, style: AppTextStyles.songTitleLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
                               const SizedBox(height: 4),
-                              Text('${song.artist} · ${song.album}',
-                                style: AppTextStyles.bodyLight.copyWith(fontSize: 13, color: Colors.white.withOpacity(0.5))),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: GestureDetector(
+                                      onTap: widget.onArtistTap,
+                                      child: Text(song.artist,
+                                        style: AppTextStyles.bodyLight.copyWith(fontSize: 13, color: Colors.white.withOpacity(0.5)),
+                                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    ),
+                                  ),
+                                  Text(' · ',
+                                    style: AppTextStyles.bodyLight.copyWith(fontSize: 13, color: Colors.white.withOpacity(0.5))),
+                                  Flexible(
+                                    child: GestureDetector(
+                                      onTap: widget.onAlbumTap,
+                                      child: Text(song.album,
+                                        style: AppTextStyles.bodyLight.copyWith(fontSize: 13, color: Colors.white.withOpacity(0.5)),
+                                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         ),

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'core/theme/app_colors.dart';
 import 'data/repositories/player_storage.dart';
 import 'features/login/login_page.dart';
+import 'providers/bookmark_provider.dart';
 import 'providers/catalog_provider.dart';
 import 'providers/like_provider.dart';
 import 'providers/notification_provider.dart';
@@ -31,6 +32,7 @@ class DotMusicApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
         ChangeNotifierProvider(create: (_) => LikeProvider()),
+        ChangeNotifierProvider(create: (_) => BookmarkProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => CatalogProvider()),
         // 로그인/카탈로그 상태 변화를 PlayerProvider에 주입 (선언 순서 중요)

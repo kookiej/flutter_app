@@ -10,7 +10,18 @@ import '../../shared/widgets/mini_cover.dart';
 class MoreMenuSheet extends StatelessWidget {
   final Song song;
   final String? fanchantVideoUrl;
-  const MoreMenuSheet({super.key, required this.song, this.fanchantVideoUrl});
+
+  /// 시트 닫은 뒤 아티스트 채널 / 앨범 페이지로 이동. null이면 닫기만.
+  final VoidCallback? onArtist;
+  final VoidCallback? onAlbum;
+
+  const MoreMenuSheet({
+    super.key,
+    required this.song,
+    this.fanchantVideoUrl,
+    this.onArtist,
+    this.onAlbum,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,12 +32,15 @@ class MoreMenuSheet extends StatelessWidget {
         icon: AppIcons.artistChannel(),
         label: '아티스트 채널 가기',
         sub: song.artist,
+        onTap: onArtist,
       ),
-      _MoreOption(
-        icon: AppIcons.albumDisc(),
-        label: '앨범 보러 가기',
-        sub: "${song.artist} '${song.title}' 앨범",
-      ),
+      if (onAlbum != null)
+        _MoreOption(
+          icon: AppIcons.albumDisc(),
+          label: '앨범 보러 가기',
+          sub: "${song.artist} '${song.title}' 앨범",
+          onTap: onAlbum,
+        ),
       // 응원법 영상 URL이 있는 곡에서만 노출 → 탭 시 외부 브라우저/앱으로 열기
       if (hasFanchantVideo)
         _MoreOption(

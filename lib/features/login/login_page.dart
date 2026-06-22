@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../home/home_page.dart';
+import '../shell/main_shell.dart';
 import '../shared/widgets/noise_overlay.dart';
 import '../../core/utils/url_cleanup_stub.dart'
     if (dart.library.js_interop) '../../core/utils/url_cleanup_web.dart';
@@ -126,7 +126,7 @@ class _LoginPageState extends State<LoginPage>
 
   void _goHome() {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const HomePage()),
+      MaterialPageRoute(builder: (_) => const MainShell()),
     );
   }
 

@@ -6,6 +6,7 @@ import '../../data/models/artist.dart';
 import '../../data/models/song.dart';
 import '../../providers/catalog_provider.dart';
 import '../../providers/player_provider.dart';
+import '../artist/artist_page.dart';
 import '../shared/icons/app_icons.dart';
 import '../shared/widgets/panel_sub_header.dart';
 import '../shared/widgets/toast_snackbar.dart';
@@ -104,7 +105,10 @@ class _SeeAllPageState extends State<SeeAllPage> {
       itemCount: artists.length,
       itemBuilder: (_, i) {
         final a = artists[i];
-        return Padding(
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => Navigator.of(context).push(ArtistPage.route(a)),
+          child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Row(
             children: [
@@ -139,6 +143,7 @@ class _SeeAllPageState extends State<SeeAllPage> {
               ),
               AppIcons.chevronRight(color: AppColors.textFaint),
             ],
+          ),
           ),
         );
       },

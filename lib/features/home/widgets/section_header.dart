@@ -7,7 +7,16 @@ class SectionHeader extends StatelessWidget {
   final String? action;
   final VoidCallback? onAction;
 
-  const SectionHeader({super.key, required this.title, this.action, this.onAction});
+  /// 제목 오른쪽(액션 텍스트 앞)에 들어가는 추가 위젯 — 예: 전체 재생 아이콘 버튼.
+  final Widget? trailing;
+
+  const SectionHeader({
+    super.key,
+    required this.title,
+    this.action,
+    this.onAction,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +26,10 @@ class SectionHeader extends StatelessWidget {
         children: [
           Text(title, style: AppTextStyles.sectionTitle),
           const Spacer(),
+          if (trailing != null) ...[
+            trailing!,
+            if (action != null) const SizedBox(width: 14),
+          ],
           if (action != null)
             GestureDetector(
               onTap: onAction,

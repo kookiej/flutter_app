@@ -124,6 +124,13 @@ class AppIcons {
     width: 22, height: 22,
   );
 
+  static Widget bookmark({bool filled = false, Color? color}) => SvgPicture.string(
+    '<svg width="22" height="22" viewBox="0 0 24 24" fill="${filled ? _hex(color ?? const Color(0xFFa78bfa)) : "none"}" xmlns="http://www.w3.org/2000/svg">'
+    '<path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" stroke="${_hex(color ?? (filled ? const Color(0xFFa78bfa) : const Color(0x80FFFFFF)))}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
+    '</svg>',
+    width: 22, height: 22,
+  );
+
   static Widget queue({Color? color}) => SvgPicture.string(
     '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
     '<line x1="3" y1="6" x2="21" y2="6" stroke="${_hex(color ?? Colors.white)}" stroke-width="1.8" stroke-linecap="round"/>'

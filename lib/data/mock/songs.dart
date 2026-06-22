@@ -102,4 +102,203 @@ const List<Song> kSongs = [
     tags: ["k-pop", "ATEEZ"],
     spotifyTrackId: "2VKGO4DNyUK5UxCQB3b3DF",
   ),
+
+  // ── 수록곡 확장 (앨범 페이지용 B-side). 부모 곡의 색 팔레트를 재사용한다. ──
+  // BTS · BE (정규)
+  Song(
+    title: "Life Goes On", artist: "BTS", album: "BE", duration: 207,
+    colors: [Color(0xFF1a0a2e), Color(0xFF2d1b6e), Color(0xFF4a2fa0)],
+    accent: Color(0xFFa78bfa), lyricsColor: Color(0xFFc4b5fd),
+    coverGradient: [Color(0xFF1a0a2e), Color(0xFF4a2fa0), Color(0xFF7c3aed)],
+    coverAccent: Color(0xFF7c3aed),
+    tags: ["k-pop", "발라드", "위로"],
+  ),
+  Song(
+    title: "Blue & Grey", artist: "BTS", album: "BE", duration: 252,
+    colors: [Color(0xFF1a0a2e), Color(0xFF2d1b6e), Color(0xFF4a2fa0)],
+    accent: Color(0xFFa78bfa), lyricsColor: Color(0xFFc4b5fd),
+    coverGradient: [Color(0xFF1a0a2e), Color(0xFF4a2fa0), Color(0xFF7c3aed)],
+    coverAccent: Color(0xFF7c3aed),
+    tags: ["k-pop", "발라드", "감성"],
+  ),
+  Song(
+    title: "Telepathy", artist: "BTS", album: "BE", duration: 210,
+    colors: [Color(0xFF1a0a2e), Color(0xFF2d1b6e), Color(0xFF4a2fa0)],
+    accent: Color(0xFFa78bfa), lyricsColor: Color(0xFFc4b5fd),
+    coverGradient: [Color(0xFF1a0a2e), Color(0xFF4a2fa0), Color(0xFF7c3aed)],
+    coverAccent: Color(0xFF7c3aed),
+    tags: ["k-pop", "디스코", "그루브"],
+  ),
+  Song(
+    title: "Stay", artist: "BTS", album: "BE", duration: 205,
+    colors: [Color(0xFF1a0a2e), Color(0xFF2d1b6e), Color(0xFF4a2fa0)],
+    accent: Color(0xFFa78bfa), lyricsColor: Color(0xFFc4b5fd),
+    coverGradient: [Color(0xFF1a0a2e), Color(0xFF4a2fa0), Color(0xFF7c3aed)],
+    coverAccent: Color(0xFF7c3aed),
+    tags: ["k-pop", "EDM"],
+  ),
+
+  // IU · LILAC (정규)
+  Song(
+    title: "LILAC", artist: "IU", album: "LILAC", duration: 217,
+    colors: [Color(0xFF1a0e2e), Color(0xFF3d1a5c), Color(0xFF7b2d8b)],
+    accent: Color(0xFFf0abfc), lyricsColor: Color(0xFFe879f9),
+    coverGradient: [Color(0xFF1a0e2e), Color(0xFF7b2d8b), Color(0xFFc026d3)],
+    coverAccent: Color(0xFFc026d3),
+    tags: ["k-pop", "팝", "봄"],
+  ),
+  Song(
+    title: "Coin", artist: "IU", album: "LILAC", duration: 165,
+    colors: [Color(0xFF1a0e2e), Color(0xFF3d1a5c), Color(0xFF7b2d8b)],
+    accent: Color(0xFFf0abfc), lyricsColor: Color(0xFFe879f9),
+    coverGradient: [Color(0xFF1a0e2e), Color(0xFF7b2d8b), Color(0xFFc026d3)],
+    coverAccent: Color(0xFFc026d3),
+    tags: ["k-pop", "펑크", "리드미컬"],
+  ),
+  Song(
+    title: "Flu", artist: "IU", album: "LILAC", duration: 201,
+    colors: [Color(0xFF1a0e2e), Color(0xFF3d1a5c), Color(0xFF7b2d8b)],
+    accent: Color(0xFFf0abfc), lyricsColor: Color(0xFFe879f9),
+    coverGradient: [Color(0xFF1a0e2e), Color(0xFF7b2d8b), Color(0xFFc026d3)],
+    coverAccent: Color(0xFFc026d3),
+    tags: ["k-pop", "감성"],
+  ),
+  Song(
+    title: "Hi Spring Bye", artist: "IU", album: "LILAC", duration: 228,
+    colors: [Color(0xFF1a0e2e), Color(0xFF3d1a5c), Color(0xFF7b2d8b)],
+    accent: Color(0xFFf0abfc), lyricsColor: Color(0xFFe879f9),
+    coverGradient: [Color(0xFF1a0e2e), Color(0xFF7b2d8b), Color(0xFFc026d3)],
+    coverAccent: Color(0xFFc026d3),
+    tags: ["k-pop", "발라드"],
+  ),
+
+  // NewJeans · NewJeans (미니)
+  Song(
+    title: "Attention", artist: "NewJeans", album: "NewJeans", duration: 180,
+    colors: [Color(0xFF0a0f1a), Color(0xFF1a2d4a), Color(0xFF2a4a7b)],
+    accent: Color(0xFF60a5fa), lyricsColor: Color(0xFF93c5fd),
+    coverGradient: [Color(0xFF0a0f1a), Color(0xFF1e3a5f), Color(0xFF2563eb)],
+    coverAccent: Color(0xFF2563eb),
+    tags: ["k-pop", "걸그룹", "R&B"],
+  ),
+  Song(
+    title: "Cookie", artist: "NewJeans", album: "NewJeans", duration: 231,
+    colors: [Color(0xFF0a0f1a), Color(0xFF1a2d4a), Color(0xFF2a4a7b)],
+    accent: Color(0xFF60a5fa), lyricsColor: Color(0xFF93c5fd),
+    coverGradient: [Color(0xFF0a0f1a), Color(0xFF1e3a5f), Color(0xFF2563eb)],
+    coverAccent: Color(0xFF2563eb),
+    tags: ["k-pop", "걸그룹"],
+  ),
+  Song(
+    title: "Hurt", artist: "NewJeans", album: "NewJeans", duration: 213,
+    colors: [Color(0xFF0a0f1a), Color(0xFF1a2d4a), Color(0xFF2a4a7b)],
+    accent: Color(0xFF60a5fa), lyricsColor: Color(0xFF93c5fd),
+    coverGradient: [Color(0xFF0a0f1a), Color(0xFF1e3a5f), Color(0xFF2563eb)],
+    coverAccent: Color(0xFF2563eb),
+    tags: ["k-pop", "걸그룹", "발라드"],
+  ),
+
+  // (G)I-DLE · I love (미니)
+  Song(
+    title: "Villain Dies", artist: "(G)I-DLE", album: "I love", duration: 190,
+    colors: [Color(0xFF1a0a08), Color(0xFF3d1a0e), Color(0xFF7b2d1a)],
+    accent: Color(0xFFfb923c), lyricsColor: Color(0xFFfdba74),
+    coverGradient: [Color(0xFF1a0a08), Color(0xFF7c2d12), Color(0xFFea580c)],
+    coverAccent: Color(0xFFea580c),
+    tags: ["k-pop", "걸그룹", "힙합"],
+  ),
+  Song(
+    title: "Change", artist: "(G)I-DLE", album: "I love", duration: 175,
+    colors: [Color(0xFF1a0a08), Color(0xFF3d1a0e), Color(0xFF7b2d1a)],
+    accent: Color(0xFFfb923c), lyricsColor: Color(0xFFfdba74),
+    coverGradient: [Color(0xFF1a0a08), Color(0xFF7c2d12), Color(0xFFea580c)],
+    coverAccent: Color(0xFFea580c),
+    tags: ["k-pop", "걸그룹"],
+  ),
+  Song(
+    title: "Sculpture", artist: "(G)I-DLE", album: "I love", duration: 200,
+    colors: [Color(0xFF1a0a08), Color(0xFF3d1a0e), Color(0xFF7b2d1a)],
+    accent: Color(0xFFfb923c), lyricsColor: Color(0xFFfdba74),
+    coverGradient: [Color(0xFF1a0a08), Color(0xFF7c2d12), Color(0xFFea580c)],
+    coverAccent: Color(0xFFea580c),
+    tags: ["k-pop", "걸그룹", "발라드"],
+  ),
+
+  // LE SSERAFIM · ANTIFRAGILE (미니)
+  Song(
+    title: "Impurities", artist: "LE SSERAFIM", album: "ANTIFRAGILE", duration: 215,
+    colors: [Color(0xFF1a1a0a), Color(0xFF3d3d0e), Color(0xFF6b6b1a)],
+    accent: Color(0xFFfacc15), lyricsColor: Color(0xFFfde68a),
+    coverGradient: [Color(0xFF1a1a0a), Color(0xFF713f12), Color(0xFFca8a04)],
+    coverAccent: Color(0xFFca8a04),
+    tags: ["k-pop", "걸그룹", "R&B"],
+  ),
+  Song(
+    title: "No Celestial", artist: "LE SSERAFIM", album: "ANTIFRAGILE", duration: 192,
+    colors: [Color(0xFF1a1a0a), Color(0xFF3d3d0e), Color(0xFF6b6b1a)],
+    accent: Color(0xFFfacc15), lyricsColor: Color(0xFFfde68a),
+    coverGradient: [Color(0xFF1a1a0a), Color(0xFF713f12), Color(0xFFca8a04)],
+    coverAccent: Color(0xFFca8a04),
+    tags: ["k-pop", "걸그룹"],
+  ),
+  Song(
+    title: "Good Parts", artist: "LE SSERAFIM", album: "ANTIFRAGILE", duration: 188,
+    colors: [Color(0xFF1a1a0a), Color(0xFF3d3d0e), Color(0xFF6b6b1a)],
+    accent: Color(0xFFfacc15), lyricsColor: Color(0xFFfde68a),
+    coverGradient: [Color(0xFF1a1a0a), Color(0xFF713f12), Color(0xFFca8a04)],
+    coverAccent: Color(0xFFca8a04),
+    tags: ["k-pop", "걸그룹", "발라드"],
+  ),
+
+  // aespa · Savage (미니)
+  Song(
+    title: "aenergy", artist: "aespa", album: "Savage", duration: 200,
+    colors: [Color(0xFF0a1a1a), Color(0xFF0e3d3a), Color(0xFF1a7b75)],
+    accent: Color(0xFF2dd4bf), lyricsColor: Color(0xFF5eead4),
+    coverGradient: [Color(0xFF0a1a1a), Color(0xFF134e4a), Color(0xFF0d9488)],
+    coverAccent: Color(0xFF0d9488),
+    tags: ["k-pop", "걸그룹", "퓨처"],
+  ),
+  Song(
+    title: "Yeppi Yeppi", artist: "aespa", album: "Savage", duration: 185,
+    colors: [Color(0xFF0a1a1a), Color(0xFF0e3d3a), Color(0xFF1a7b75)],
+    accent: Color(0xFF2dd4bf), lyricsColor: Color(0xFF5eead4),
+    coverGradient: [Color(0xFF0a1a1a), Color(0xFF134e4a), Color(0xFF0d9488)],
+    coverAccent: Color(0xFF0d9488),
+    tags: ["k-pop", "걸그룹"],
+  ),
+  Song(
+    title: "I'll Make You Cry", artist: "aespa", album: "Savage", duration: 210,
+    colors: [Color(0xFF0a1a1a), Color(0xFF0e3d3a), Color(0xFF1a7b75)],
+    accent: Color(0xFF2dd4bf), lyricsColor: Color(0xFF5eead4),
+    coverGradient: [Color(0xFF0a1a1a), Color(0xFF134e4a), Color(0xFF0d9488)],
+    coverAccent: Color(0xFF0d9488),
+    tags: ["k-pop", "걸그룹", "발라드"],
+  ),
+
+  // (G)I-DLE · I feel (미니)
+  Song(
+    title: "Allergy", artist: "(G)I-DLE", album: "I feel", duration: 181,
+    colors: [Color(0xFF1a0a14), Color(0xFF3d0e28), Color(0xFF7b1a4a)],
+    accent: Color(0xFFf472b6), lyricsColor: Color(0xFFf9a8d4),
+    coverGradient: [Color(0xFF1a0a14), Color(0xFF831843), Color(0xFFdb2777)],
+    coverAccent: Color(0xFFdb2777),
+    tags: ["k-pop", "걸그룹", "팝"],
+  ),
+  Song(
+    title: "Lucid", artist: "(G)I-DLE", album: "I feel", duration: 195,
+    colors: [Color(0xFF1a0a14), Color(0xFF3d0e28), Color(0xFF7b1a4a)],
+    accent: Color(0xFFf472b6), lyricsColor: Color(0xFFf9a8d4),
+    coverGradient: [Color(0xFF1a0a14), Color(0xFF831843), Color(0xFFdb2777)],
+    coverAccent: Color(0xFFdb2777),
+    tags: ["k-pop", "걸그룹"],
+  ),
+  Song(
+    title: "Paradise", artist: "(G)I-DLE", album: "I feel", duration: 210,
+    colors: [Color(0xFF1a0a14), Color(0xFF3d0e28), Color(0xFF7b1a4a)],
+    accent: Color(0xFFf472b6), lyricsColor: Color(0xFFf9a8d4),
+    coverGradient: [Color(0xFF1a0a14), Color(0xFF831843), Color(0xFFdb2777)],
+    coverAccent: Color(0xFFdb2777),
+    tags: ["k-pop", "걸그룹", "발라드"],
+  ),
 ];
